@@ -15,8 +15,6 @@
             --cyan: #00E5FF;
             --cyan-dim: rgba(0, 229, 255, 0.12);
             --cyan-glow: rgba(0, 229, 255, 0.08);
-            --purple: #7B5CE4;
-            --purple-dim: rgba(123, 92, 228, 0.15);
             --text: #E8EDF5;
             --text-muted: #7A8499;
             --text-dim: #4A5568;
@@ -42,7 +40,6 @@
             overflow: hidden;
         }
 
-        /* Ambient background grid */
         body::before {
             content: '';
             position: fixed;
@@ -55,7 +52,6 @@
             z-index: 0;
         }
 
-        /* Vignette */
         body::after {
             content: '';
             position: fixed;
@@ -65,7 +61,6 @@
             z-index: 0;
         }
 
-        /* ─── SCREENS ─── */
         .screen {
             position: absolute;
             inset: 0;
@@ -85,11 +80,7 @@
         #setupScreen {
             flex-direction: column;
             align-items: center;
-            gap: 48px;
-        }
-
-        .logo-area {
-            text-align: center;
+            gap: 36px;
         }
 
         .logo {
@@ -99,11 +90,9 @@
             letter-spacing: -0.03em;
             color: var(--text);
             line-height: 1;
+            text-align: center;
         }
-
-        .logo span {
-            color: var(--cyan);
-        }
+        .logo span { color: var(--cyan); }
 
         .logo-sub {
             margin-top: 10px;
@@ -111,9 +100,9 @@
             color: var(--text-muted);
             letter-spacing: 0.04em;
             text-transform: uppercase;
+            text-align: center;
         }
 
-        /* Animated cyan dot */
         .pulse-dot {
             display: inline-block;
             width: 8px;
@@ -125,11 +114,85 @@
             animation: pulse-ring 2s ease-in-out infinite;
             box-shadow: 0 0 0 0 rgba(0,229,255,0.4);
         }
-
         @keyframes pulse-ring {
             0%   { box-shadow: 0 0 0 0 rgba(0,229,255,0.4); }
             60%  { box-shadow: 0 0 0 8px rgba(0,229,255,0); }
             100% { box-shadow: 0 0 0 0 rgba(0,229,255,0); }
+        }
+
+        /* Username input block */
+        .username-block {
+            width: 380px;
+        }
+
+        .username-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .username-input-wrap {
+            display: flex;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0 14px;
+            transition: border-color 0.2s;
+        }
+        .username-input-wrap:focus-within {
+            border-color: var(--border-bright);
+        }
+        .username-input-wrap.error {
+            border-color: rgba(255,75,110,0.5);
+        }
+
+        .username-prefix {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            color: var(--cyan);
+            margin-right: 4px;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .username-input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 13px 0;
+        }
+        .username-input::placeholder { color: var(--text-dim); font-weight: 400; }
+
+        .username-hint {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 7px;
+            min-height: 18px;
+            transition: color 0.2s;
+        }
+        .username-hint.error { color: var(--red); }
+        .username-hint.ok    { color: var(--green); }
+
+        /* Topic grid */
+        .topic-section-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            width: 380px;
         }
 
         .topic-grid {
@@ -150,7 +213,6 @@
             position: relative;
             overflow: hidden;
         }
-
         .topic-btn::before {
             content: '';
             position: absolute;
@@ -159,20 +221,16 @@
             opacity: 0;
             transition: opacity 0.2s;
         }
-
-        .topic-btn:hover {
+        .topic-btn:hover:not(:disabled) {
             border-color: var(--border-bright);
             transform: translateY(-2px);
         }
-
-        .topic-btn:hover::before { opacity: 1; }
-
-        .topic-btn .topic-icon {
-            font-size: 26px;
-            margin-bottom: 10px;
-            display: block;
+        .topic-btn:hover:not(:disabled)::before { opacity: 1; }
+        .topic-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
         }
-
+        .topic-btn .topic-icon { font-size: 26px; margin-bottom: 10px; display: block; }
         .topic-btn .topic-name {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 15px;
@@ -180,19 +238,7 @@
             color: var(--text);
             display: block;
         }
-
-        .topic-btn .topic-tag {
-            font-size: 12px;
-            color: var(--cyan);
-            margin-top: 3px;
-            display: block;
-        }
-
-        .online-count {
-            font-size: 13px;
-            color: var(--text-muted);
-            text-align: center;
-        }
+        .topic-btn .topic-tag { font-size: 12px; color: var(--cyan); margin-top: 3px; display: block; }
 
         /* ─── CHAT SCREEN ─── */
         #chatScreen {
@@ -208,7 +254,6 @@
             flex-direction: column;
         }
 
-        /* Header */
         .chat-header {
             display: flex;
             align-items: center;
@@ -221,11 +266,7 @@
             z-index: 10;
         }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
 
         .back-btn {
             background: none;
@@ -241,17 +282,9 @@
             justify-content: center;
             transition: border-color 0.2s, color 0.2s;
         }
+        .back-btn:hover { border-color: var(--border-bright); color: var(--cyan); }
 
-        .back-btn:hover {
-            border-color: var(--border-bright);
-            color: var(--cyan);
-        }
-
-        .partner-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .partner-info { display: flex; align-items: center; gap: 10px; }
 
         .avatar {
             width: 36px;
@@ -273,12 +306,10 @@
             border: 2px solid transparent;
             transition: border-color 0.3s;
         }
-
         .avatar-ring.connected {
             border-color: var(--cyan);
             animation: ring-pulse 2.5s ease-in-out infinite;
         }
-
         @keyframes ring-pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
             50%       { opacity: 0.6; transform: scale(1.06); }
@@ -307,10 +338,8 @@
             transition: background 0.3s;
             flex-shrink: 0;
         }
-
         .status-dot.connected { background: var(--green); }
         .status-dot.waiting   { background: #FFA500; animation: blink 1s steps(1) infinite; }
-
         @keyframes blink { 50% { opacity: 0; } }
 
         .topic-pill {
@@ -321,12 +350,6 @@
             font-family: 'Space Grotesk', sans-serif;
             padding: 4px 10px;
             border-radius: 20px;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
         .next-btn {
@@ -344,7 +367,6 @@
             gap: 6px;
             transition: border-color 0.2s, color 0.2s, background 0.2s;
         }
-
         .next-btn:hover {
             border-color: var(--red);
             color: var(--red);
@@ -361,28 +383,42 @@
             gap: 6px;
             scroll-behavior: smooth;
         }
-
         .chat-body::-webkit-scrollbar { width: 4px; }
         .chat-body::-webkit-scrollbar-track { background: transparent; }
         .chat-body::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
 
-        /* Message bubbles */
+        /* Message rows */
         .msg-row {
             display: flex;
-            align-items: flex-end;
-            gap: 8px;
+            flex-direction: column;
             max-width: 70%;
             animation: msgIn 0.25s ease;
         }
-
         @keyframes msgIn {
             from { opacity: 0; transform: translateY(8px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        .msg-row.me    { align-self: flex-end; flex-direction: row-reverse; }
-        .msg-row.other { align-self: flex-start; }
-        .msg-row.system { align-self: center; max-width: 90%; }
+        .msg-row.me    { align-self: flex-end; align-items: flex-end; }
+        .msg-row.other { align-self: flex-start; align-items: flex-start; }
+        .msg-row.system { align-self: center; max-width: 90%; align-items: center; }
+
+        /* Sender name above bubble (for "other" messages) */
+        .msg-sender {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--cyan);
+            margin-bottom: 3px;
+            padding-left: 2px;
+        }
+
+        .bubble-wrap {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        .msg-row.me .bubble-wrap { flex-direction: row-reverse; }
 
         .bubble {
             padding: 10px 14px;
@@ -415,7 +451,6 @@
             border-radius: var(--radius);
             padding: 8px 16px;
         }
-
         .msg-row.system.warn .bubble {
             background: rgba(255,75,110,0.08);
             border-color: rgba(255,75,110,0.25);
@@ -427,20 +462,27 @@
             color: var(--text-dim);
             flex-shrink: 0;
             margin-bottom: 2px;
+            padding: 0 2px;
         }
-
-        .msg-row.me .msg-time { text-align: right; }
 
         /* Typing indicator */
         .typing-indicator {
             display: none;
-            align-items: flex-end;
-            gap: 8px;
+            flex-direction: column;
+            align-items: flex-start;
             align-self: flex-start;
             animation: msgIn 0.25s ease;
         }
-
         .typing-indicator.visible { display: flex; }
+
+        .typing-sender {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--cyan);
+            margin-bottom: 3px;
+            padding-left: 2px;
+        }
 
         .typing-bubble {
             background: var(--surface2);
@@ -460,16 +502,14 @@
             background: var(--text-muted);
             animation: typingBounce 1.2s ease-in-out infinite;
         }
-
         .typing-dot:nth-child(2) { animation-delay: 0.15s; }
         .typing-dot:nth-child(3) { animation-delay: 0.3s; }
-
         @keyframes typingBounce {
             0%, 60%, 100% { transform: translateY(0); }
             30%            { transform: translateY(-5px); }
         }
 
-        /* Chat footer / input area */
+        /* Footer */
         .chat-footer {
             padding: 16px 20px;
             border-top: 1px solid var(--border);
@@ -488,10 +528,7 @@
             padding: 6px 6px 6px 16px;
             transition: border-color 0.2s;
         }
-
-        .input-row:focus-within {
-            border-color: var(--border-bright);
-        }
+        .input-row:focus-within { border-color: var(--border-bright); }
 
         .msg-input {
             flex: 1;
@@ -504,13 +541,8 @@
             line-height: 1.5;
             padding: 6px 0;
         }
-
         .msg-input::placeholder { color: var(--text-dim); }
-
-        .msg-input:disabled {
-            cursor: not-allowed;
-            color: var(--text-dim);
-        }
+        .msg-input:disabled { cursor: not-allowed; color: var(--text-dim); }
 
         .send-btn {
             background: var(--cyan);
@@ -526,17 +558,10 @@
             transition: opacity 0.2s, transform 0.15s;
             color: #0D0F14;
         }
-
         .send-btn:hover:not(:disabled) { opacity: 0.85; transform: scale(1.05); }
         .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .send-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
-        .send-btn svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
-        }
-
-        /* Empty / waiting state */
         .chat-empty {
             flex: 1;
             display: flex;
@@ -546,7 +571,6 @@
             gap: 12px;
             color: var(--text-muted);
         }
-
         .spinner {
             width: 36px;
             height: 36px;
@@ -555,14 +579,9 @@
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-
         @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-text { font-size: 14px; }
 
-        .empty-text {
-            font-size: 14px;
-        }
-
-        /* Character counter */
         .char-count {
             font-size: 11px;
             color: var(--text-dim);
@@ -572,11 +591,9 @@
             text-align: right;
             transition: color 0.2s;
         }
-
         .char-count.warn { color: #FFA500; }
         .char-count.over { color: var(--red); }
 
-        /* Toast */
         #toast {
             position: fixed;
             bottom: 80px;
@@ -594,15 +611,11 @@
             z-index: 100;
             white-space: nowrap;
         }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        #toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        /* Responsive */
         @media (max-width: 500px) {
-            .topic-grid { width: 320px; grid-template-columns: 1fr 1fr; }
+            .topic-grid, .username-block, .topic-section-label { width: 320px; }
+            .topic-grid { grid-template-columns: 1fr 1fr; }
             .msg-row { max-width: 85%; }
         }
     </style>
@@ -611,40 +624,58 @@
 
     <!-- SETUP SCREEN -->
     <div class="screen" id="setupScreen">
-        <div id="setupContent">
-            <div class="logo-area" style="text-align:center; margin-bottom: 40px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:28px;">
+
+            <div class="logo-area">
                 <div class="logo">Rando<span>Chat</span></div>
                 <div class="logo-sub">
                     <span class="pulse-dot"></span>Ismeretlen emberek, valódi beszélgetések
                 </div>
             </div>
 
+            <!-- Username input -->
+            <div class="username-block">
+                <label class="username-label" for="usernameInp">Felhasználóneved</label>
+                <div class="username-input-wrap" id="usernameWrap">
+                    <span class="username-prefix">@</span>
+                    <input
+                        type="text"
+                        id="usernameInp"
+                        class="username-input"
+                        placeholder="pl. CoolGamer99"
+                        maxlength="20"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                </div>
+                <div class="username-hint" id="usernameHint">3–20 karakter, csak betű, szám és kötőjel</div>
+            </div>
+
+            <!-- Topic grid -->
+            <div class="topic-section-label">Válassz témát a csatlakozáshoz</div>
             <div class="topic-grid">
-                <button class="topic-btn" onclick="csatlakozas('gaming')">
+                <button class="topic-btn" id="btn-gaming" onclick="csatlakozas('gaming')" disabled>
                     <span class="topic-icon">🎮</span>
                     <span class="topic-name">Gaming</span>
                     <span class="topic-tag">#gaming</span>
                 </button>
-                <button class="topic-btn" onclick="csatlakozas('filmek')">
+                <button class="topic-btn" id="btn-filmek" onclick="csatlakozas('filmek')" disabled>
                     <span class="topic-icon">🎬</span>
                     <span class="topic-name">Filmek</span>
                     <span class="topic-tag">#filmek</span>
                 </button>
-                <button class="topic-btn" onclick="csatlakozas('zene')">
+                <button class="topic-btn" id="btn-zene" onclick="csatlakozas('zene')" disabled>
                     <span class="topic-icon">🎵</span>
                     <span class="topic-name">Zene</span>
                     <span class="topic-tag">#zene</span>
                 </button>
-                <button class="topic-btn" onclick="csatlakozas('random')">
+                <button class="topic-btn" id="btn-random" onclick="csatlakozas('random')" disabled>
                     <span class="topic-icon">🎲</span>
                     <span class="topic-name">Random</span>
                     <span class="topic-tag">#random</span>
                 </button>
             </div>
 
-            <div class="online-count" id="onlineCount" style="margin-top:24px;">
-                Csatlakozásra vár...
-            </div>
         </div>
     </div>
 
@@ -652,12 +683,9 @@
     <div class="screen hidden" id="chatScreen">
         <div class="chat-shell">
 
-            <!-- Header -->
             <div class="chat-header">
                 <div class="header-left">
-                    <button class="back-btn" onclick="visszaFoMenube()" title="Vissza">
-                        ←
-                    </button>
+                    <button class="back-btn" onclick="visszaFoMenube()" title="Vissza">←</button>
                     <div class="partner-info">
                         <div class="avatar" id="partnerAvatar">
                             <div class="avatar-ring" id="avatarRing"></div>
@@ -675,19 +703,17 @@
 
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span class="topic-pill" id="topicPill">#téma</span>
-                    <button class="next-btn" onclick="kovetkezo()" id="nextBtn">
-                        ⏭ Következő
-                    </button>
+                    <button class="next-btn" onclick="kovetkezo()">⏭ Következő</button>
                 </div>
             </div>
 
-            <!-- Chat body -->
             <div class="chat-body" id="chatBody">
                 <div class="chat-empty" id="chatEmpty">
                     <div class="spinner"></div>
                     <div class="empty-text">Várakozás egy partnerre...</div>
                 </div>
                 <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-sender" id="typingSender"></div>
                     <div class="typing-bubble">
                         <div class="typing-dot"></div>
                         <div class="typing-dot"></div>
@@ -696,7 +722,6 @@
                 </div>
             </div>
 
-            <!-- Footer -->
             <div class="chat-footer">
                 <div class="input-row">
                     <input
@@ -720,25 +745,75 @@
         </div>
     </div>
 
-    <!-- Toast -->
     <div id="toast"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         let aktualisTema = "";
+        let sajatNev = "";
+        let partnerNev = "";
         let isConnected = false;
         let typingTimeout = null;
         let partnerTypingTimeout = null;
 
         const TOPIC_META = {
-            gaming:  { icon: '🎮', label: 'Gamer' },
-            filmek:  { icon: '🎬', label: 'Filmrajongó' },
-            zene:    { icon: '🎵', label: 'Zenész' },
-            random:  { icon: '🎲', label: 'Random' },
+            gaming: { icon: '🎮' },
+            filmek: { icon: '🎬' },
+            zene:   { icon: '🎵' },
+            random: { icon: '🎲' },
         };
 
-        // ─── NAVIGATION ───────────────────────────────
+        // ─── FELHASZNÁLÓNÉV VALIDÁCIÓ ──────────────────
+        const usernameInp = document.getElementById('usernameInp');
+        const usernameWrap = document.getElementById('usernameWrap');
+        const usernameHint = document.getElementById('usernameHint');
+        const topicBtns = document.querySelectorAll('.topic-btn');
+
+        const USERNAME_RE = /^[a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ_\-]{3,20}$/;
+
+        function validateUsername(val) {
+            if (val.length === 0) return null;          // üres — semleges
+            if (val.length < 3) return 'short';
+            if (!USERNAME_RE.test(val)) return 'invalid';
+            return 'ok';
+        }
+
+        usernameInp.addEventListener('input', () => {
+            const val = usernameInp.value.trim();
+            const state = validateUsername(val);
+
+            usernameWrap.classList.remove('error');
+            usernameHint.className = 'username-hint';
+
+            if (state === null) {
+                usernameHint.textContent = '3–20 karakter, csak betű, szám és kötőjel';
+                topicBtns.forEach(b => b.disabled = true);
+            } else if (state === 'short') {
+                usernameHint.textContent = 'Legalább 3 karakter kell';
+                usernameHint.className = 'username-hint error';
+                usernameWrap.classList.add('error');
+                topicBtns.forEach(b => b.disabled = true);
+            } else if (state === 'invalid') {
+                usernameHint.textContent = 'Csak betű, szám, kötőjel és aláhúzás megengedett';
+                usernameHint.className = 'username-hint error';
+                usernameWrap.classList.add('error');
+                topicBtns.forEach(b => b.disabled = true);
+            } else {
+                usernameHint.textContent = '✓ Szép választás!';
+                usernameHint.className = 'username-hint ok';
+                topicBtns.forEach(b => b.disabled = false);
+            }
+        });
+
+        // ─── LINK FELISMERÉS (kliens oldali védelem) ──
+        const LINK_RE = /((https?:\/\/|www\.)[^\s]+|[a-zA-Z0-9\-]+\.(com|net|org|hu|io|co|xyz|gg|me|tv|ru|de|uk|fr|eu|app|dev|ai)(\.[a-zA-Z]{2,})?(?:\/[^\s]*)?)/gi;
+
+        function containsLink(text) {
+            return LINK_RE.test(text);
+        }
+
+        // ─── NAVIGÁCIÓ ────────────────────────────────
         function mutatChatKepernyo() {
             document.getElementById('setupScreen').classList.add('hidden');
             document.getElementById('chatScreen').classList.remove('hidden');
@@ -750,17 +825,16 @@
         }
 
         function visszaFoMenube() {
-            if (isConnected) {
-                socket.emit('next_partner'); // Disconnect cleanly
-            }
+            if (isConnected) socket.emit('next_partner');
             setDisconnectedState();
             clearMessages();
             mutatSetupKepernyo();
         }
 
-        // ─── STATE HELPERS ────────────────────────────
+        // ─── STATE ────────────────────────────────────
         function setWaitingState() {
             isConnected = false;
+            partnerNev = "";
             document.getElementById('statusDot').className = 'status-dot waiting';
             document.getElementById('statusText').textContent = 'Partnert keresünk';
             document.getElementById('partnerName').textContent = 'Várakozás...';
@@ -771,17 +845,19 @@
             document.getElementById('chatEmpty').style.display = 'flex';
         }
 
-        function setConnectedState(topic) {
+        function setConnectedState(topic, nev) {
             isConnected = true;
-            const meta = TOPIC_META[topic] || { icon: '💬', label: 'Partner' };
+            partnerNev = nev || 'Partner';
+            const meta = TOPIC_META[topic] || { icon: '💬' };
             document.getElementById('statusDot').className = 'status-dot connected';
             document.getElementById('statusText').textContent = 'Csatlakozva';
-            document.getElementById('partnerName').textContent = meta.label;
+            document.getElementById('partnerName').textContent = partnerNev;
             document.getElementById('avatarRing').className = 'avatar-ring connected';
             document.getElementById('avatarEmoji').textContent = meta.icon;
             document.getElementById('uzenetInp').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             document.getElementById('chatEmpty').style.display = 'none';
+            document.getElementById('typingSender').textContent = partnerNev + ' ír...';
             document.getElementById('uzenetInp').focus();
         }
 
@@ -789,7 +865,6 @@
             isConnected = false;
             document.getElementById('statusDot').className = 'status-dot';
             document.getElementById('statusText').textContent = 'Kapcsolat megszakadt';
-            document.getElementById('partnerName').textContent = 'Partner';
             document.getElementById('avatarRing').className = 'avatar-ring';
             document.getElementById('uzenetInp').disabled = true;
             document.getElementById('sendBtn').disabled = true;
@@ -797,24 +872,36 @@
 
         function clearMessages() {
             const body = document.getElementById('chatBody');
-            // Remove all message rows, keep empty placeholder and typing indicator
             Array.from(body.querySelectorAll('.msg-row')).forEach(el => el.remove());
             document.getElementById('chatEmpty').style.display = 'flex';
         }
 
-        // ─── ACTIONS ──────────────────────────────────
+        // ─── AKCIÓK ───────────────────────────────────
         function csatlakozas(tema) {
+            sajatNev = usernameInp.value.trim();
+            if (!sajatNev || validateUsername(sajatNev) !== 'ok') return;
+
             aktualisTema = tema;
             document.getElementById('topicPill').textContent = '#' + tema;
             mutatChatKepernyo();
             setWaitingState();
-            socket.emit('join_topic', tema);
+            socket.emit('join_topic', { topic: tema, username: sajatNev });
         }
 
         function kuldes() {
             const inp = document.getElementById('uzenetInp');
             const msg = inp.value.trim();
             if (!msg || !isConnected) return;
+
+            // Kliens oldali link blokkolás
+            LINK_RE.lastIndex = 0;
+            if (containsLink(msg)) {
+                addMessage('Az üzenet nem küldhető el: linkek küldése nem engedélyezett.', 'warn');
+                inp.value = '';
+                updateCharCount();
+                return;
+            }
+
             socket.emit('send_message', msg);
             addMessage(msg, 'me');
             inp.value = '';
@@ -825,17 +912,16 @@
         function kovetkezo() {
             clearMessages();
             setWaitingState();
-            addSystemMsg('Rendszer: Új partnert keresünk...');
+            addSystemMsg('Új partnert keresünk...');
             socket.emit('next_partner');
         }
 
-        // ─── MESSAGES ─────────────────────────────────
-        function addMessage(text, type) {
-            // type: 'me' | 'other' | 'system' | 'warn'
+        // ─── ÜZENETEK ─────────────────────────────────
+        function addMessage(text, type, senderName) {
             const body = document.getElementById('chatBody');
             const typingEl = document.getElementById('typingIndicator');
-
             const isSystem = type === 'system' || type === 'warn';
+
             const row = document.createElement('div');
             row.className = 'msg-row ' + type;
 
@@ -843,12 +929,21 @@
 
             if (isSystem) {
                 row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
-            } else {
-                const timeEl = `<div class="msg-time">${now}</div>`;
+            } else if (type === 'other') {
                 row.innerHTML = `
-                    ${type === 'me' ? timeEl : ''}
-                    <div class="bubble">${escapeHtml(text)}</div>
-                    ${type === 'other' ? timeEl : ''}
+                    <div class="msg-sender">${escapeHtml(senderName || partnerNev)}</div>
+                    <div class="bubble-wrap">
+                        <div class="bubble">${escapeHtml(text)}</div>
+                        <div class="msg-time">${now}</div>
+                    </div>
+                `;
+            } else {
+                // 'me'
+                row.innerHTML = `
+                    <div class="bubble-wrap">
+                        <div class="msg-time">${now}</div>
+                        <div class="bubble">${escapeHtml(text)}</div>
+                    </div>
                 `;
             }
 
@@ -856,9 +951,7 @@
             body.scrollTop = body.scrollHeight;
         }
 
-        function addSystemMsg(text) {
-            addMessage(text, 'system');
-        }
+        function addSystemMsg(text) { addMessage(text, 'system'); }
 
         function escapeHtml(str) {
             const d = document.createElement('div');
@@ -866,17 +959,17 @@
             return d.innerHTML;
         }
 
-        // ─── CHAR COUNTER ─────────────────────────────
-        const inp = document.getElementById('uzenetInp');
+        // ─── KARAKTERSZÁMLÁLÓ ─────────────────────────
+        const msgInp = document.getElementById('uzenetInp');
         const charCountEl = document.getElementById('charCount');
 
         function updateCharCount() {
-            const remaining = 500 - inp.value.length;
+            const remaining = 500 - msgInp.value.length;
             charCountEl.textContent = remaining;
             charCountEl.className = 'char-count' + (remaining < 0 ? ' over' : remaining < 50 ? ' warn' : '');
         }
 
-        inp.addEventListener('input', () => {
+        msgInp.addEventListener('input', () => {
             updateCharCount();
             if (!isConnected) return;
             socket.emit('typing_start');
@@ -884,7 +977,7 @@
             typingTimeout = setTimeout(() => socket.emit('typing_stop'), 2000);
         });
 
-        inp.addEventListener('keydown', (e) => {
+        msgInp.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 kuldes();
@@ -892,21 +985,19 @@
         });
 
         // ─── SOCKET EVENTS ────────────────────────────
-        socket.on('waiting', () => {
-            setWaitingState();
+        socket.on('waiting', () => setWaitingState());
+
+        socket.on('chat_ready', ({ message, partnerUsername }) => {
+            setConnectedState(aktualisTema, partnerUsername);
+            addSystemMsg(message);
         });
 
-        socket.on('chat_ready', (msg) => {
-            setConnectedState(aktualisTema);
-            addSystemMsg(msg);
-        });
-
-        socket.on('receive_message', (msg) => {
+        socket.on('receive_message', ({ text, senderName }) => {
             hideTyping();
-            if (msg.startsWith('RENDSZER:')) {
-                addMessage(msg.replace('RENDSZER:', '').trim(), 'warn');
+            if (text.startsWith('RENDSZER:')) {
+                addMessage(text.replace('RENDSZER:', '').trim(), 'warn');
             } else {
-                addMessage(msg, 'other');
+                addMessage(text, 'other', senderName);
             }
         });
 
@@ -942,7 +1033,6 @@
             setTimeout(() => t.classList.remove('show'), duration);
         }
 
-        // Init char counter
         updateCharCount();
     </script>
 </body>
