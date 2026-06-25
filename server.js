@@ -76,7 +76,7 @@ io.on('connection', (socket) => {
 
     socket.on('next_partner', () => {
         if (socket.currentRoom) {
-            socket.to(socket.currentRoom).emit('partner_left', 'A partnered elhagyta a chatet, hogy új embert keressen.');
+            socket.to(socket.currentRoom).emit('partner_left', { reason: 'next', partnerName: socket.username });
 
             const roomSockets = io.sockets.adapter.rooms.get(socket.currentRoom);
             if (roomSockets) {
@@ -94,6 +94,35 @@ io.on('connection', (socket) => {
 
         const topic = socket.topic;
         if (topic) parositasKiserlel(socket, topic);
+    });
+
+    // ÚJ: Kifejezetten a főmenübe való visszatérés kezelése
+    socket.on('leave_chat', () => {
+        // 1. Ha várakozott, azonnal töröljük a várólistáról
+        if (socket.topic && varolista[socket.topic]?.id === socket.id) {
+            delete varolista[socket.topic];
+        }
+
+        // 2. Ha épp chatezett valakivel, bontsuk a szobát
+        if (socket.currentRoom) {
+            socket.to(socket.currentRoom).emit('partner_left', { reason: 'disconnect', partnerName: socket.username });
+
+            const roomSockets = io.sockets.adapter.rooms.get(socket.currentRoom);
+            if (roomSockets) {
+                for (const id of roomSockets) {
+                    if (id !== socket.id) {
+                        const parSocket = io.sockets.sockets.get(id);
+                        if (parSocket) parSocket.currentRoom = null;
+                    }
+                }
+            }
+
+            socket.leave(socket.currentRoom);
+            socket.currentRoom = null;
+        }
+
+        // 3. Töröljük a témáját, hisz visszament a menübe
+        socket.topic = null;
     });
 
     socket.on('typing_start', () => {
@@ -151,7 +180,7 @@ io.on('connection', (socket) => {
             delete varolista[socket.topic];
         }
         if (socket.currentRoom) {
-            socket.to(socket.currentRoom).emit('partner_left', 'A partnered kilépett a chatből.');
+            socket.to(socket.currentRoom).emit('partner_left', { reason: 'disconnect', partnerName: socket.username });
         }
     });
 });

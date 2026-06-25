@@ -825,8 +825,11 @@
         }
 
         function visszaFoMenube() {
-            if (isConnected) socket.emit('next_partner');
-            setDisconnectedState();
+            // Szólunk a szervernek, hogy végleg elhagyjuk a chatet (nem csak ugrunk)
+            socket.emit('leave_chat'); 
+            
+            // Mindent alaphelyzetbe állítunk
+            setWaitingState();
             clearMessages();
             mutatSetupKepernyo();
         }
@@ -1001,10 +1004,14 @@
             }
         });
 
-        socket.on('partner_left', (msg) => {
+        socket.on('partner_left', ({ reason, partnerName }) => {
             setDisconnectedState();
-            addSystemMsg(msg);
             hideTyping();
+            if (reason === 'next') {
+                addSystemMsg(`${partnerName || 'A partner'} új partnert keres.`);
+            } else {
+                addSystemMsg(`${partnerName || 'A partner'} elhagyta a chatet.`);
+            }
         });
 
         socket.on('partner_typing', () => {
