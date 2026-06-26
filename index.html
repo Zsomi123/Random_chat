@@ -33,6 +33,7 @@
             color: var(--text);
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -144,6 +145,7 @@
         /* Username input block */
         .username-block {
             width: 380px;
+            max-width: 100%;
         }
 
         .username-label {
@@ -214,6 +216,7 @@
             letter-spacing: 0.06em;
             text-transform: uppercase;
             width: 380px;
+            max-width: 100%;
         }
 
         .topic-grid {
@@ -221,6 +224,7 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 14px;
             width: 380px;
+            max-width: 100%;
         }
 
         .topic-btn {
@@ -271,6 +275,7 @@
         .chat-shell {
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
         }
@@ -634,10 +639,120 @@
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        @media (max-width: 500px) {
-            .topic-grid, .username-block, .topic-section-label { width: 320px; }
-            .topic-grid { grid-template-columns: 1fr 1fr; }
-            .msg-row { max-width: 85%; }
+        /* ─── RESZPONZÍV ─── */
+
+        /* Tablet (max 768px) */
+        @media (max-width: 768px) {
+            #setupScreen { gap: 24px; padding: 20px 16px; overflow-y: auto; justify-content: flex-start; padding-top: 40px; }
+            .logo { font-size: 34px; }
+            .topic-grid, .username-block, .topic-section-label { width: 100%; max-width: 420px; }
+            .msg-row { max-width: 80%; }
+            .chat-header { padding: 10px 16px; }
+            .next-btn { font-size: 12px; padding: 6px 10px; }
+        }
+
+        /* Mobil (max 480px) */
+        @media (max-width: 480px) {
+            /* Setup screen */
+            #setupScreen {
+                padding: 24px 16px 32px;
+                justify-content: flex-start;
+                overflow-y: auto;
+                align-items: stretch;
+                gap: 20px;
+            }
+            #setupScreen > div {
+                width: 100%;
+                align-items: stretch !important;
+            }
+            .logo { font-size: 30px; }
+            .logo-sub { font-size: 12px; }
+            .online-count { font-size: 12px; }
+
+            .username-block,
+            .topic-section-label { width: 100%; }
+
+            .topic-grid {
+                width: 100%;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .topic-btn { padding: 16px 14px; }
+            .topic-btn .topic-icon { font-size: 22px; margin-bottom: 7px; }
+            .topic-btn .topic-name { font-size: 14px; }
+
+            /* Chat header: tömörebb */
+            .chat-header {
+                padding: 10px 12px;
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+            .header-left { gap: 8px; min-width: 0; flex: 1; }
+            .back-btn { width: 30px; height: 30px; font-size: 15px; flex-shrink: 0; }
+            .partner-info { gap: 7px; min-width: 0; }
+            .avatar { width: 30px; height: 30px; font-size: 14px; }
+            .partner-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+            .partner-status { font-size: 11px; }
+
+            /* Header jobb oldal: topic pill elrejtése, csak a gomb marad */
+            .topic-pill { display: none; }
+            .next-btn { font-size: 12px; padding: 6px 10px; gap: 4px; white-space: nowrap; flex-shrink: 0; }
+
+            /* Chat üzenetek */
+            .chat-body { padding: 14px 12px; }
+            .msg-row { max-width: 88%; }
+            .bubble { font-size: 14px; padding: 9px 12px; }
+
+            /* Footer */
+            .chat-footer { padding: 10px 12px; }
+            .msg-input { font-size: 14px; }
+            .send-btn { width: 36px; height: 36px; }
+
+            /* Toast magasabb pozíció billentyűzet miatt */
+            #toast { bottom: 90px; font-size: 12px; padding: 8px 14px; }
+        }
+
+        /* Nagyon kis képernyő (max 360px) */
+        @media (max-width: 360px) {
+            .logo { font-size: 26px; }
+            .topic-btn .topic-name { font-size: 13px; }
+            .partner-name { max-width: 80px; }
+            .next-btn span { display: none; } /* ⏭ ikon marad, szöveg eltűnik */
+        }
+
+        /* Álló/fekvő váltás mobilon: ne nyomja le a tartalmat */
+        @media (max-height: 600px) and (max-width: 768px) {
+            #setupScreen { padding-top: 16px; gap: 14px; }
+            .logo { font-size: 26px; }
+            .logo-sub, .online-count { display: none; }
+            .topic-btn { padding: 12px 14px; }
+            .topic-btn .topic-icon { font-size: 20px; margin-bottom: 5px; }
+        }
+
+        /* Nagy képernyő (desktop 1200px+): középre igazított chat panel */
+        @media (min-width: 1200px) {
+            #chatScreen { align-items: center; justify-content: center; }
+            .chat-shell {
+                width: 820px;
+                height: 90vh;
+                max-height: 860px;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+                box-shadow: 0 0 60px rgba(0,229,255,0.04);
+            }
+        }
+
+        /* Közepes desktop (900–1199px) */
+        @media (min-width: 900px) and (max-width: 1199px) {
+            #chatScreen { align-items: center; justify-content: center; }
+            .chat-shell {
+                width: 700px;
+                height: 88vh;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-lg);
+                overflow: hidden;
+            }
         }
     </style>
 </head>
@@ -727,7 +842,7 @@
 
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span class="topic-pill" id="topicPill">#téma</span>
-                    <button class="next-btn" onclick="kovetkezo()">⏭ Következő</button>
+                    <button class="next-btn" onclick="kovetkezo()">⏭ <span>Következő</span></button>
                 </div>
             </div>
 
@@ -1031,13 +1146,6 @@
 
         function addSystemMsg(text) { addMessage(text, 'system'); }
 
-        // Az utolsó rendszerüzenet eltávolítása (pl. "Új partnert keresünk...")
-        function removeLastSystemMsg() {
-            const body = document.getElementById('chatBody');
-            const rows = body.querySelectorAll('.msg-row.system');
-            if (rows.length > 0) rows[rows.length - 1].remove();
-        }
-
         function escapeHtml(str) {
             const d = document.createElement('div');
             d.appendChild(document.createTextNode(str));
@@ -1073,7 +1181,6 @@
         socket.on('waiting', () => setWaitingState());
 
         socket.on('chat_ready', ({ message, partnerUsername }) => {
-            removeLastSystemMsg();
             setConnectedState(aktualisTema, partnerUsername);
             addSystemMsg(message);
             playConnectSound();
@@ -1100,14 +1207,10 @@
             }
         });
 
-        socket.on('partner_left', ({ reason, partnerName }) => {
+        socket.on('partner_left', (msg) => {
             setDisconnectedState();
+            addSystemMsg(msg);
             hideTyping();
-            if (reason === 'next') {
-                addSystemMsg(`${partnerName || 'A partner'} új partnert keres.`);
-            } else {
-                addSystemMsg(`${partnerName || 'A partner'} elhagyta a chatet.`);
-            }
         });
 
         socket.on('partner_typing', () => {
@@ -1137,6 +1240,25 @@
         }
 
         updateCharCount();
+
+        // ─── MOBIL BILLENTYŰZET FIX ───────────────────
+        // iOS Safari: megakadályozzuk az automatikus zoom-ot input fókuszáláskor
+        if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+            document.getElementById('uzenetInp').style.fontSize = '16px';
+            document.getElementById('usernameInp').style.fontSize = '16px';
+        }
+
+        // Visual Viewport API: chat footer ragad a billentyűzet fölé mobilon
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                const footer = document.querySelector('.chat-footer');
+                if (!footer) return;
+                const offsetFromBottom = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+                footer.style.transform = offsetFromBottom > 0
+                    ? `translateY(-${offsetFromBottom}px)`
+                    : '';
+            });
+        }
     </script>
 </body>
 </html>
