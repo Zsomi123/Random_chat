@@ -33,7 +33,6 @@
             color: var(--text);
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -145,7 +144,6 @@
         /* Username input block */
         .username-block {
             width: 380px;
-            max-width: 100%;
         }
 
         .username-label {
@@ -227,6 +225,71 @@
             max-width: 100%;
         }
 
+        /* Nemválasztó */
+        .gender-section-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            width: 380px;
+            max-width: 100%;
+        }
+
+        .gender-row {
+            display: flex;
+            gap: 12px;
+            width: 380px;
+            max-width: 100%;
+        }
+
+        .gender-btn {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: border-color 0.2s, background 0.2s;
+            color: var(--text-muted);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+        }
+        .gender-btn .gender-icon { font-size: 18px; }
+        .gender-btn:hover { border-color: var(--border-bright); color: var(--text); }
+        .gender-btn.selected {
+            border-color: var(--cyan);
+            background: var(--cyan-dim);
+            color: var(--text);
+        }
+        .gender-btn.selected::after {
+            content: '✓';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: var(--cyan);
+        }
+        .gender-btn-skip {
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: var(--text-dim);
+            cursor: pointer;
+            text-decoration: underline;
+            font-family: 'Inter', sans-serif;
+            align-self: center;
+            padding: 4px;
+        }
+        .gender-btn-skip:hover { color: var(--text-muted); }
+
         .topic-btn {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -275,7 +338,6 @@
         .chat-shell {
             width: 100vw;
             height: 100vh;
-            height: 100dvh;
             display: flex;
             flex-direction: column;
         }
@@ -346,6 +408,14 @@
             font-size: 14px;
             font-weight: 500;
             color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .partner-gender-badge {
+            font-size: 14px;
+            line-height: 1;
         }
 
         .partner-status {
@@ -641,117 +711,86 @@
 
         /* ─── RESZPONZÍV ─── */
 
-        /* Tablet (max 768px) */
         @media (max-width: 768px) {
-            #setupScreen { gap: 24px; padding: 20px 16px; overflow-y: auto; justify-content: flex-start; padding-top: 40px; }
+            #setupScreen { gap: 20px; padding: 20px 16px; overflow-y: auto; justify-content: flex-start; padding-top: 32px; }
             .logo { font-size: 34px; }
-            .topic-grid, .username-block, .topic-section-label { width: 100%; max-width: 420px; }
+            .topic-grid, .username-block, .topic-section-label, .gender-section-label, .gender-row { width: 100%; max-width: 420px; }
             .msg-row { max-width: 80%; }
             .chat-header { padding: 10px 16px; }
             .next-btn { font-size: 12px; padding: 6px 10px; }
         }
 
-        /* Mobil (max 480px) */
         @media (max-width: 480px) {
-            /* Setup screen */
             #setupScreen {
-                padding: 24px 16px 32px;
+                padding: 20px 16px 32px;
                 justify-content: flex-start;
                 overflow-y: auto;
                 align-items: stretch;
-                gap: 20px;
+                gap: 16px;
             }
-            #setupScreen > div {
-                width: 100%;
-                align-items: stretch !important;
-            }
-            .logo { font-size: 30px; }
+            #setupScreen > div { width: 100%; align-items: stretch !important; }
+            .logo { font-size: 28px; }
             .logo-sub { font-size: 12px; }
             .online-count { font-size: 12px; }
 
-            .username-block,
-            .topic-section-label { width: 100%; }
+            .username-block, .topic-section-label, .gender-section-label { width: 100%; }
+            .gender-row { width: 100%; }
+            .gender-btn { padding: 10px 12px; font-size: 13px; }
 
-            .topic-grid {
-                width: 100%;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-            .topic-btn { padding: 16px 14px; }
-            .topic-btn .topic-icon { font-size: 22px; margin-bottom: 7px; }
-            .topic-btn .topic-name { font-size: 14px; }
+            .topic-grid { width: 100%; grid-template-columns: 1fr 1fr; gap: 9px; }
+            .topic-btn { padding: 14px 12px; }
+            .topic-btn .topic-icon { font-size: 20px; margin-bottom: 6px; }
+            .topic-btn .topic-name { font-size: 13px; }
+            .topic-btn .topic-tag { font-size: 11px; }
 
-            /* Chat header: tömörebb */
-            .chat-header {
-                padding: 10px 12px;
-                flex-wrap: nowrap;
-                gap: 6px;
-            }
+            .chat-header { padding: 10px 12px; flex-wrap: nowrap; gap: 6px; }
             .header-left { gap: 8px; min-width: 0; flex: 1; }
             .back-btn { width: 30px; height: 30px; font-size: 15px; flex-shrink: 0; }
             .partner-info { gap: 7px; min-width: 0; }
             .avatar { width: 30px; height: 30px; font-size: 14px; }
-            .partner-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+            .partner-name { font-size: 13px; max-width: 130px; }
             .partner-status { font-size: 11px; }
-
-            /* Header jobb oldal: topic pill elrejtése, csak a gomb marad */
             .topic-pill { display: none; }
             .next-btn { font-size: 12px; padding: 6px 10px; gap: 4px; white-space: nowrap; flex-shrink: 0; }
 
-            /* Chat üzenetek */
             .chat-body { padding: 14px 12px; }
             .msg-row { max-width: 88%; }
             .bubble { font-size: 14px; padding: 9px 12px; }
-
-            /* Footer */
             .chat-footer { padding: 10px 12px; }
             .msg-input { font-size: 14px; }
             .send-btn { width: 36px; height: 36px; }
-
-            /* Toast magasabb pozíció billentyűzet miatt */
             #toast { bottom: 90px; font-size: 12px; padding: 8px 14px; }
         }
 
-        /* Nagyon kis képernyő (max 360px) */
         @media (max-width: 360px) {
-            .logo { font-size: 26px; }
-            .topic-btn .topic-name { font-size: 13px; }
-            .partner-name { max-width: 80px; }
-            .next-btn span { display: none; } /* ⏭ ikon marad, szöveg eltűnik */
+            .logo { font-size: 24px; }
+            .topic-btn .topic-name { font-size: 12px; }
+            .partner-name { max-width: 90px; }
+            .next-btn span { display: none; }
         }
 
-        /* Álló/fekvő váltás mobilon: ne nyomja le a tartalmat */
         @media (max-height: 600px) and (max-width: 768px) {
-            #setupScreen { padding-top: 16px; gap: 14px; }
-            .logo { font-size: 26px; }
+            #setupScreen { padding-top: 12px; gap: 12px; }
+            .logo { font-size: 24px; }
             .logo-sub, .online-count { display: none; }
-            .topic-btn { padding: 12px 14px; }
-            .topic-btn .topic-icon { font-size: 20px; margin-bottom: 5px; }
+            .topic-btn { padding: 10px 12px; }
+            .topic-btn .topic-icon { font-size: 18px; margin-bottom: 4px; }
         }
 
-        /* Nagy képernyő (desktop 1200px+): középre igazított chat panel */
         @media (min-width: 1200px) {
             #chatScreen { align-items: center; justify-content: center; }
             .chat-shell {
-                width: 820px;
-                height: 90vh;
-                max-height: 860px;
-                border: 1px solid var(--border);
-                border-radius: var(--radius-lg);
-                overflow: hidden;
-                box-shadow: 0 0 60px rgba(0,229,255,0.04);
+                width: 820px; height: 90vh; max-height: 860px;
+                border: 1px solid var(--border); border-radius: var(--radius-lg);
+                overflow: hidden; box-shadow: 0 0 60px rgba(0,229,255,0.04);
             }
         }
 
-        /* Közepes desktop (900–1199px) */
         @media (min-width: 900px) and (max-width: 1199px) {
             #chatScreen { align-items: center; justify-content: center; }
             .chat-shell {
-                width: 700px;
-                height: 88vh;
-                border: 1px solid var(--border);
-                border-radius: var(--radius-lg);
-                overflow: hidden;
+                width: 700px; height: 88vh;
+                border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
             }
         }
     </style>
@@ -790,6 +829,20 @@
                 <div class="username-hint" id="usernameHint">3–20 karakter, csak betű, szám és kötőjel</div>
             </div>
 
+            <!-- Nemválasztó -->
+            <div class="gender-section-label">Ki vagy te?</div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:380px; max-width:100%;">
+                <div class="gender-row">
+                    <button class="gender-btn" id="genderFerfi" onclick="nemValaszt('ferfi')">
+                        <span class="gender-icon">♂️</span> Férfi
+                    </button>
+                    <button class="gender-btn" id="genderNo" onclick="nemValaszt('no')">
+                        <span class="gender-icon">♀️</span> Nő
+                    </button>
+                </div>
+                <button class="gender-btn-skip" onclick="nemValaszt(null)">Inkább nem adom meg</button>
+            </div>
+
             <!-- Topic grid -->
             <div class="topic-section-label">Válassz témát a csatlakozáshoz</div>
             <div class="topic-grid">
@@ -813,6 +866,26 @@
                     <span class="topic-name">Random</span>
                     <span class="topic-tag">#random</span>
                 </button>
+                <button class="topic-btn" id="btn-sorozat" onclick="csatlakozas('sorozat')" disabled>
+                    <span class="topic-icon">📺</span>
+                    <span class="topic-name">Sorozat / Anime</span>
+                    <span class="topic-tag">#sorozat</span>
+                </button>
+                <button class="topic-btn" id="btn-iskola" onclick="csatlakozas('iskola')" disabled>
+                    <span class="topic-icon">🎓</span>
+                    <span class="topic-name">Iskola / Uni</span>
+                    <span class="topic-tag">#iskola</span>
+                </button>
+                <button class="topic-btn" id="btn-lelki" onclick="csatlakozas('lelki')" disabled>
+                    <span class="topic-icon">💙</span>
+                    <span class="topic-name">Lelki segély</span>
+                    <span class="topic-tag">#lelki-segely</span>
+                </button>
+                <button class="topic-btn" id="btn-tech" onclick="csatlakozas('tech')" disabled>
+                    <span class="topic-icon">💻</span>
+                    <span class="topic-name">Tech / Kód</span>
+                    <span class="topic-tag">#tech</span>
+                </button>
             </div>
 
         </div>
@@ -831,7 +904,10 @@
                             <span id="avatarEmoji">👤</span>
                         </div>
                         <div>
-                            <div class="partner-name" id="partnerName">Várakozás...</div>
+                            <div class="partner-name" id="partnerName">
+                                <span id="partnerNameText">Várakozás...</span>
+                                <span class="partner-gender-badge" id="partnerGenderBadge"></span>
+                            </div>
                             <div class="partner-status">
                                 <div class="status-dot waiting" id="statusDot"></div>
                                 <span id="statusText">Partnert keresünk</span>
@@ -842,7 +918,7 @@
 
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span class="topic-pill" id="topicPill">#téma</span>
-                    <button class="next-btn" onclick="kovetkezo()">⏭ <span>Következő</span></button>
+                    <button class="next-btn" onclick="kovetkezo()">⏭ Következő</button>
                 </div>
             </div>
 
@@ -892,16 +968,23 @@
         let aktualisTema = "";
         let sajatNev = "";
         let partnerNev = "";
+        let sajatNem = null;       // 'ferfi' | 'no' | null
         let isConnected = false;
         let typingTimeout = null;
         let partnerTypingTimeout = null;
 
         const TOPIC_META = {
-            gaming: { icon: '🎮' },
-            filmek: { icon: '🎬' },
-            zene:   { icon: '🎵' },
-            random: { icon: '🎲' },
+            gaming:  { icon: '🎮' },
+            filmek:  { icon: '🎬' },
+            zene:    { icon: '🎵' },
+            random:  { icon: '🎲' },
+            sorozat: { icon: '📺' },
+            iskola:  { icon: '🎓' },
+            lelki:   { icon: '💙' },
+            tech:    { icon: '💻' },
         };
+
+        const GENDER_ICON = { ferfi: '♂️', no: '♀️' };
 
         // ─── FELHASZNÁLÓNÉV VALIDÁCIÓ ──────────────────
         const usernameInp = document.getElementById('usernameInp');
@@ -1020,7 +1103,8 @@
             partnerNev = "";
             document.getElementById('statusDot').className = 'status-dot waiting';
             document.getElementById('statusText').textContent = 'Partnert keresünk';
-            document.getElementById('partnerName').textContent = 'Várakozás...';
+            document.getElementById('partnerNameText').textContent = 'Várakozás...';
+            document.getElementById('partnerGenderBadge').textContent = '';
             document.getElementById('avatarRing').className = 'avatar-ring';
             document.getElementById('avatarEmoji').textContent = '👤';
             document.getElementById('uzenetInp').disabled = true;
@@ -1028,13 +1112,14 @@
             document.getElementById('chatEmpty').style.display = 'flex';
         }
 
-        function setConnectedState(topic, nev) {
+        function setConnectedState(topic, nev, partnerGender) {
             isConnected = true;
             partnerNev = nev || 'Partner';
             const meta = TOPIC_META[topic] || { icon: '💬' };
             document.getElementById('statusDot').className = 'status-dot connected';
             document.getElementById('statusText').textContent = 'Csatlakozva';
-            document.getElementById('partnerName').textContent = partnerNev;
+            document.getElementById('partnerNameText').textContent = partnerNev;
+            document.getElementById('partnerGenderBadge').textContent = partnerGender ? (GENDER_ICON[partnerGender] || '') : '';
             document.getElementById('avatarRing').className = 'avatar-ring connected';
             document.getElementById('avatarEmoji').textContent = meta.icon;
             document.getElementById('uzenetInp').disabled = false;
@@ -1049,6 +1134,7 @@
             document.getElementById('statusDot').className = 'status-dot';
             document.getElementById('statusText').textContent = 'Kapcsolat megszakadt';
             document.getElementById('avatarRing').className = 'avatar-ring';
+            document.getElementById('partnerGenderBadge').textContent = '';
             document.getElementById('uzenetInp').disabled = true;
             document.getElementById('sendBtn').disabled = true;
         }
@@ -1057,6 +1143,13 @@
             const body = document.getElementById('chatBody');
             Array.from(body.querySelectorAll('.msg-row')).forEach(el => el.remove());
             document.getElementById('chatEmpty').style.display = 'flex';
+        }
+
+        // ─── NEMVÁLASZTÓ ──────────────────────────────
+        function nemValaszt(nem) {
+            sajatNem = nem;
+            document.getElementById('genderFerfi').classList.toggle('selected', nem === 'ferfi');
+            document.getElementById('genderNo').classList.toggle('selected', nem === 'no');
         }
 
         // ─── AKCIÓK ───────────────────────────────────
@@ -1068,7 +1161,7 @@
             document.getElementById('topicPill').textContent = '#' + tema;
             mutatChatKepernyo();
             setWaitingState();
-            socket.emit('join_topic', { topic: tema, username: sajatNev });
+            socket.emit('join_topic', { topic: tema, username: sajatNev, gender: sajatNem });
         }
 
         let lastSendTime = 0;
@@ -1146,6 +1239,12 @@
 
         function addSystemMsg(text) { addMessage(text, 'system'); }
 
+        function removeLastSystemMsg() {
+            const body = document.getElementById('chatBody');
+            const rows = body.querySelectorAll('.msg-row.system');
+            if (rows.length > 0) rows[rows.length - 1].remove();
+        }
+
         function escapeHtml(str) {
             const d = document.createElement('div');
             d.appendChild(document.createTextNode(str));
@@ -1180,8 +1279,9 @@
         // ─── SOCKET EVENTS ────────────────────────────
         socket.on('waiting', () => setWaitingState());
 
-        socket.on('chat_ready', ({ message, partnerUsername }) => {
-            setConnectedState(aktualisTema, partnerUsername);
+        socket.on('chat_ready', ({ message, partnerUsername, partnerGender }) => {
+            removeLastSystemMsg();
+            setConnectedState(aktualisTema, partnerUsername, partnerGender);
             addSystemMsg(message);
             playConnectSound();
         });
@@ -1207,10 +1307,14 @@
             }
         });
 
-        socket.on('partner_left', (msg) => {
+        socket.on('partner_left', ({ reason, partnerName }) => {
             setDisconnectedState();
-            addSystemMsg(msg);
             hideTyping();
+            if (reason === 'next') {
+                addSystemMsg(`${partnerName || 'A partner'} új partnert keres.`);
+            } else {
+                addSystemMsg(`${partnerName || 'A partner'} elhagyta a chatet.`);
+            }
         });
 
         socket.on('partner_typing', () => {
@@ -1240,25 +1344,6 @@
         }
 
         updateCharCount();
-
-        // ─── MOBIL BILLENTYŰZET FIX ───────────────────
-        // iOS Safari: megakadályozzuk az automatikus zoom-ot input fókuszáláskor
-        if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-            document.getElementById('uzenetInp').style.fontSize = '16px';
-            document.getElementById('usernameInp').style.fontSize = '16px';
-        }
-
-        // Visual Viewport API: chat footer ragad a billentyűzet fölé mobilon
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', () => {
-                const footer = document.querySelector('.chat-footer');
-                if (!footer) return;
-                const offsetFromBottom = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-                footer.style.transform = offsetFromBottom > 0
-                    ? `translateY(-${offsetFromBottom}px)`
-                    : '';
-            });
-        }
     </script>
 </body>
 </html>

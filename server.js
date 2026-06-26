@@ -53,20 +53,22 @@ function parositasKiserlel(socket, topic) {
             socket.currentRoom = szobaNev;
             parSocket.currentRoom = szobaNev;
 
-            // Mindenki megkapja a másik nevét
+            // Mindenki megkapja a másik nevét ÉS nemét
             socket.emit('chat_ready', {
                 message: `Összekötöttünk valakivel a(z) #${topic} témában!`,
-                partnerUsername: par.username
+                partnerUsername: par.username,
+                partnerGender: par.gender || null
             });
             parSocket.emit('chat_ready', {
                 message: `Összekötöttünk valakivel a(z) #${topic} témában!`,
-                partnerUsername: socket.username
+                partnerUsername: socket.username,
+                partnerGender: socket.gender || null
             });
 
             delete varolista[topic];
         }
     } else {
-        varolista[topic] = { id: socket.id, username: socket.username };
+        varolista[topic] = { id: socket.id, username: socket.username, gender: socket.gender || null };
         socket.emit('waiting', 'Várakozás egy partnerre...');
     }
 }
@@ -76,7 +78,7 @@ io.on('connection', (socket) => {
     broadcastOnlineCount();
     console.log('Csatlakozott:', socket.id, '| Online:', onlineSzam);
 
-    socket.on('join_topic', ({ topic, username }) => {
+    socket.on('join_topic', ({ topic, username, gender }) => {
         // Validáljuk a nevet — ha érvénytelen, nem engedjük be
         if (!validUsername(username)) {
             socket.emit('error_msg', 'Érvénytelen felhasználónév.');
@@ -84,6 +86,7 @@ io.on('connection', (socket) => {
         }
         socket.username = username.trim();
         socket.topic = topic;
+        socket.gender = ['ferfi', 'no'].includes(gender) ? gender : null;
         parositasKiserlel(socket, topic);
     });
 
