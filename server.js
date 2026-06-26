@@ -16,6 +16,17 @@ app.get('/', (req, res) => {
 
 let varolista = {};
 
+// Online felhasználók számlálója
+let onlineSzam = 0;
+
+function broadcastOnlineCount() {
+    io.emit('online_count', onlineSzam);
+}
+
+// Spam cooldown: socketId → utolsó üzenet időbélyege
+const lastMessageTime = new Map();
+const COOLDOWN_MS = 1000; // 1 másodperc
+
 // Link felismerő regex — szerver oldali (dupla védelem)
 const LINK_RE = /((https?:\/\/|www\.)[^\s]+|[a-zA-Z0-9\-]+\.(com|net|org|hu|io|co|xyz|gg|me|tv|ru|de|uk|fr|eu|app|dev|ai)(\.[a-zA-Z]{2,})?(?:\/[^\s]*)?)/i;
 
@@ -61,7 +72,9 @@ function parositasKiserlel(socket, topic) {
 }
 
 io.on('connection', (socket) => {
-    console.log('Csatlakozott:', socket.id);
+    onlineSzam++;
+    broadcastOnlineCount();
+    console.log('Csatlakozott:', socket.id, '| Online:', onlineSzam);
 
     socket.on('join_topic', ({ topic, username }) => {
         // Validáljuk a nevet — ha érvénytelen, nem engedjük be
@@ -96,7 +109,7 @@ io.on('connection', (socket) => {
         if (topic) parositasKiserlel(socket, topic);
     });
 
-    // ÚJ: Kifejezetten a főmenübe való visszatérés kezelése
+    // ÚJ: A főmenübe való visszatérés kezelése (Szellem-felhasználók irtása)
     socket.on('leave_chat', () => {
         // 1. Ha várakozott, azonnal töröljük a várólistáról
         if (socket.topic && varolista[socket.topic]?.id === socket.id) {
@@ -135,6 +148,18 @@ io.on('connection', (socket) => {
 
     socket.on('send_message', async (msg) => {
         if (!socket.currentRoom) return;
+
+        // Spam cooldown ellenőrzés
+        const now = Date.now();
+        const last = lastMessageTime.get(socket.id) || 0;
+        if (now - last < COOLDOWN_MS) {
+            socket.emit('receive_message', {
+                text: 'RENDSZER: Túl gyorsan küldesz üzeneteket. Várj egy másodpercet.',
+                senderName: 'Rendszer'
+            });
+            return;
+        }
+        lastMessageTime.set(socket.id, now);
 
         // Leállítjuk a gépelés jelzőt a partnernél
         socket.to(socket.currentRoom).emit('partner_typing_stop');
@@ -176,6 +201,10 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        onlineSzam = Math.max(0, onlineSzam - 1);
+        broadcastOnlineCount();
+        lastMessageTime.delete(socket.id);
+
         if (socket.topic && varolista[socket.topic]?.id === socket.id) {
             delete varolista[socket.topic];
         }

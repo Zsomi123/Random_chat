@@ -103,6 +103,27 @@
             text-align: center;
         }
 
+        .online-count {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+
+        .online-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px rgba(0, 201, 122, 0.7);
+            flex-shrink: 0;
+        }
+
         .pulse-dot {
             display: inline-block;
             width: 8px;
@@ -631,6 +652,9 @@
                 <div class="logo-sub">
                     <span class="pulse-dot"></span>Ismeretlen emberek, valódi beszélgetések
                 </div>
+                <div id="onlineCount" class="online-count">
+                    <span class="online-dot"></span><span id="onlineNum">–</span> ember van most online
+                </div>
             </div>
 
             <!-- Username input -->
@@ -813,6 +837,48 @@
             return LINK_RE.test(text);
         }
 
+        // ─── HANGJELZÉSEK ─────────────────────────────
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new AudioContext();
+            return audioCtx;
+        }
+
+        function playBeep(freq = 880, duration = 0.12, vol = 0.18) {
+            try {
+                const ctx = getAudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(vol, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) { /* hanglejátszás nem elérhető */ }
+        }
+
+        // Üzenet érkezési hang: két rövid pittyenő
+        function playMessageSound() {
+            playBeep(880, 0.08, 0.15);
+            setTimeout(() => playBeep(1100, 0.08, 0.12), 90);
+        }
+
+        // Partner csatlakozási hang: felfelé ívelő kettős pittyenő
+        function playConnectSound() {
+            playBeep(660, 0.1, 0.2);
+            setTimeout(() => playBeep(990, 0.15, 0.2), 120);
+        }
+
+        // ─── ONLINE SZÁMLÁLÓ ──────────────────────────
+        socket.on('online_count', (szam) => {
+            document.getElementById('onlineNum').textContent = szam;
+        });
+
         // ─── NAVIGÁCIÓ ────────────────────────────────
         function mutatChatKepernyo() {
             document.getElementById('setupScreen').classList.add('hidden');
@@ -825,10 +891,9 @@
         }
 
         function visszaFoMenube() {
-            // Szólunk a szervernek, hogy végleg elhagyjuk a chatet (nem csak ugrunk)
+            // Kifejezetten szólunk a szervernek, hogy végleg kilépünk a chatből/várólistáról
             socket.emit('leave_chat'); 
             
-            // Mindent alaphelyzetbe állítunk
             setWaitingState();
             clearMessages();
             mutatSetupKepernyo();
@@ -891,10 +956,20 @@
             socket.emit('join_topic', { topic: tema, username: sajatNev });
         }
 
+        let lastSendTime = 0;
+
         function kuldes() {
             const inp = document.getElementById('uzenetInp');
             const msg = inp.value.trim();
             if (!msg || !isConnected) return;
+
+            // Kliens oldali cooldown (azonnali visszajelzés)
+            const now = Date.now();
+            if (now - lastSendTime < 1000) {
+                showToast('Várj egy kicsit küldés előtt!');
+                return;
+            }
+            lastSendTime = now;
 
             // Kliens oldali link blokkolás
             LINK_RE.lastIndex = 0;
@@ -956,6 +1031,13 @@
 
         function addSystemMsg(text) { addMessage(text, 'system'); }
 
+        // Az utolsó rendszerüzenet eltávolítása (pl. "Új partnert keresünk...")
+        function removeLastSystemMsg() {
+            const body = document.getElementById('chatBody');
+            const rows = body.querySelectorAll('.msg-row.system');
+            if (rows.length > 0) rows[rows.length - 1].remove();
+        }
+
         function escapeHtml(str) {
             const d = document.createElement('div');
             d.appendChild(document.createTextNode(str));
@@ -991,8 +1073,10 @@
         socket.on('waiting', () => setWaitingState());
 
         socket.on('chat_ready', ({ message, partnerUsername }) => {
+            removeLastSystemMsg();
             setConnectedState(aktualisTema, partnerUsername);
             addSystemMsg(message);
+            playConnectSound();
         });
 
         socket.on('receive_message', ({ text, senderName }) => {
@@ -1001,6 +1085,18 @@
                 addMessage(text.replace('RENDSZER:', '').trim(), 'warn');
             } else {
                 addMessage(text, 'other', senderName);
+                // Hang + tab értesítés ha a felhasználó nem látja az oldalt
+                playMessageSound();
+                if (document.hidden) {
+                    document.title = '💬 Új üzenet! — RandoChat';
+                }
+            }
+        });
+
+        // Ha visszatér a fülre, visszaállítjuk a title-t
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                document.title = 'RandoChat';
             }
         });
 
