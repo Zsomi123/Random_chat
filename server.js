@@ -343,8 +343,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Üzenet reakció (emoji) — valós időben továbbítva a partnernek
-    socket.on('message_reaction', ({ messageId, emoji }) => {
+    // ÚJ: Üzenet reakció (emoji) — valós időben továbbítva a partnernek (Hozzáadás és Törlés)
+    socket.on('message_reaction', ({ messageId, emoji, isRemoved }) => {
         if (!socket.currentRoom) return;
         if (typeof messageId !== 'string' || !messageId) return;
         if (!ALLOWED_REACTIONS.has(emoji)) return;
@@ -352,7 +352,8 @@ io.on('connection', (socket) => {
         socket.to(socket.currentRoom).emit('partner_reaction', {
             messageId,
             emoji,
-            fromName: socket.username
+            fromName: socket.username,
+            isRemoved: !!isRemoved // Biztosítjuk, hogy boolean (igaz/hamis) legyen
         });
     });
 
