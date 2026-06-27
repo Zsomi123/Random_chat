@@ -1,19 +1,19 @@
 {
-  "name": "random-chat",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "randochat-server",
+  "version": "1.1.0",
+  "description": "Random chat szerver szerver-oldali moderációval, reakciókkal és admin moderációs workflow-val",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "openai": "^6.45.0",
-    "socket.io": "^4.8.3"
-  }
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "socket.io": "^4.7.5",
+    "openai": "^4.47.1",
+    "dotenv": "^16.4.5",
+    "better-sqlite3": "^11.1.2",
+    "bcryptjs": "^2.4.3"
+  },
+  "license": "ISC"
 }
