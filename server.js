@@ -1,6 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 const { OpenAI } = require('openai');
 
@@ -18,6 +21,38 @@ let varolista = {};
 
 // Online felhasználók számlálója
 let onlineSzam = 0;
+
+// Jelentések naplózása (egyszerű, fájlba író log)
+const REPORT_LOG_PATH = path.join(__dirname, 'reports.log');
+
+function logReport({ reporterId, reporterName, reportedId, reportedName, roomMessages, reason }) {
+    const entry = {
+        timestamp: new Date().toISOString(),
+        reporterId,
+        reporterName,
+        reportedId,
+        reportedName,
+        reason: reason || null,
+        recentMessages: roomMessages || []
+    };
+    fs.appendFile(REPORT_LOG_PATH, JSON.stringify(entry) + '\n', (err) => {
+        if (err) console.error('Nem sikerült a jelentést naplózni:', err);
+    });
+}
+
+// Engedélyezett reakció emoji-k — szerver oldali whitelist (dupla védelem)
+const ALLOWED_REACTIONS = new Set(['👍', '❤️', '😂', '😮']);
+
+// Üzenetek rövid puffere szobánként, hogy jelentésnél tudjunk logolni mit látott a user
+const ROOM_HISTORY_LIMIT = 30;
+const roomHistory = new Map(); // szobaNev -> [{ id, senderName, text, ts }]
+
+function pushRoomHistory(roomName, entry) {
+    if (!roomHistory.has(roomName)) roomHistory.set(roomName, []);
+    const arr = roomHistory.get(roomName);
+    arr.push(entry);
+    if (arr.length > ROOM_HISTORY_LIMIT) arr.shift();
+}
 
 function broadcastOnlineCount() {
     io.emit('online_count', onlineSzam);
@@ -104,6 +139,7 @@ io.on('connection', (socket) => {
                 }
             }
 
+            roomHistory.delete(socket.currentRoom);
             socket.leave(socket.currentRoom);
             socket.currentRoom = null;
         }
@@ -133,6 +169,7 @@ io.on('connection', (socket) => {
                 }
             }
 
+            roomHistory.delete(socket.currentRoom);
             socket.leave(socket.currentRoom);
             socket.currentRoom = null;
         }
@@ -177,6 +214,9 @@ io.on('connection', (socket) => {
             return;
         }
 
+        const roomName = socket.currentRoom;
+        const messageId = crypto.randomUUID();
+
         try {
             const moderation = await openai.moderations.create({ input: msg });
             const result = moderation.results[0];
@@ -188,19 +228,80 @@ io.on('connection', (socket) => {
                     senderName: 'Rendszer'
                 });
             } else {
-                // Üzenet megy a partnernek a küldő nevével együtt
-                socket.to(socket.currentRoom).emit('receive_message', {
+                // Elmentjük a szoba rövid előzményébe (jelentésekhez)
+                pushRoomHistory(roomName, { id: messageId, senderId: socket.id, senderName: socket.username, text: msg, ts: now });
+
+                // Üzenet megy a partnernek a küldő nevével és egyedi ID-val együtt
+                socket.to(roomName).emit('receive_message', {
+                    id: messageId,
                     text: msg,
                     senderName: socket.username
                 });
+                // A küldő is megkapja a saját üzenete ID-ját, hogy a reakciók odaköthetők legyenek
+                socket.emit('message_sent_ack', { id: messageId, text: msg });
             }
         } catch (error) {
             console.error('Moderáció hiba:', error);
-            socket.to(socket.currentRoom).emit('receive_message', {
+            pushRoomHistory(roomName, { id: messageId, senderId: socket.id, senderName: socket.username, text: msg, ts: now });
+            socket.to(roomName).emit('receive_message', {
+                id: messageId,
                 text: msg,
                 senderName: socket.username
             });
+            socket.emit('message_sent_ack', { id: messageId, text: msg });
         }
+    });
+
+    // ÚJ: Üzenet reakció (emoji) — valós időben továbbítva a partnernek (Hozzáadás és Törlés)
+    socket.on('message_reaction', ({ messageId, emoji, isRemoved }) => {
+        if (!socket.currentRoom) return;
+        if (typeof messageId !== 'string' || !messageId) return;
+        if (!ALLOWED_REACTIONS.has(emoji)) return;
+
+        socket.to(socket.currentRoom).emit('partner_reaction', {
+            messageId,
+            emoji,
+            fromName: socket.username,
+            isRemoved: !!isRemoved // Biztosítjuk, hogy boolean (igaz/hamis) legyen
+        });
+    });
+
+    // ÚJ: Jelentés — naplózzuk és automatikusan bontjuk a kapcsolatot
+    socket.on('report_partner', ({ reason } = {}) => {
+        if (!socket.currentRoom) return;
+
+        const roomName = socket.currentRoom;
+        const roomSockets = io.sockets.adapter.rooms.get(roomName);
+        let reportedSocket = null;
+        if (roomSockets) {
+            for (const id of roomSockets) {
+                if (id !== socket.id) reportedSocket = io.sockets.sockets.get(id);
+            }
+        }
+
+        logReport({
+            reporterId: socket.id,
+            reporterName: socket.username,
+            reportedId: reportedSocket ? reportedSocket.id : null,
+            reportedName: reportedSocket ? reportedSocket.username : null,
+            roomMessages: roomHistory.get(roomName) || [],
+            reason
+        });
+
+        console.log(`Jelentés érkezett: ${socket.username} (${socket.id}) jelentette ${reportedSocket ? reportedSocket.username : '???'} (${reportedSocket ? reportedSocket.id : '???'})-t`);
+
+        // Mindkét fél értesítése + szoba bontása
+        socket.emit('report_submitted');
+        if (reportedSocket) {
+            reportedSocket.emit('partner_left', { reason: 'reported', partnerName: socket.username });
+            reportedSocket.currentRoom = null;
+        }
+        socket.to(roomName).emit('partner_left', { reason: 'reported', partnerName: socket.username });
+
+        roomHistory.delete(roomName);
+        socket.leave(roomName);
+        if (reportedSocket) reportedSocket.leave(roomName);
+        socket.currentRoom = null;
     });
 
     socket.on('disconnect', () => {
@@ -213,6 +314,7 @@ io.on('connection', (socket) => {
         }
         if (socket.currentRoom) {
             socket.to(socket.currentRoom).emit('partner_left', { reason: 'disconnect', partnerName: socket.username });
+            roomHistory.delete(socket.currentRoom);
         }
     });
 });

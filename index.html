@@ -553,6 +553,199 @@
             color: #FF7B97;
         }
 
+        /* ─── ÜZENET REAKCIÓK ─── */
+        .bubble-zone {
+            position: relative;
+            display: inline-block;
+        }
+
+        .reaction-trigger {
+            position: absolute;
+            top: -14px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+            z-index: 5;
+        }
+        .msg-row.me .reaction-trigger { left: -10px; }
+        .msg-row.other .reaction-trigger { right: -10px; }
+
+        .bubble-zone:hover .reaction-trigger,
+        .reaction-trigger.force-visible {
+            opacity: 1;
+        }
+        .reaction-trigger:hover {
+            border-color: var(--border-bright);
+            color: var(--cyan);
+        }
+
+        .reaction-picker {
+            position: absolute;
+            bottom: calc(100% + 6px);
+            display: flex;
+            gap: 4px;
+            background: var(--surface2);
+            border: 1px solid var(--border-bright);
+            border-radius: 20px;
+            padding: 5px 7px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            z-index: 20;
+            opacity: 0;
+            transform: translateY(6px) scale(0.92);
+            pointer-events: none;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .msg-row.me .reaction-picker { right: 0; }
+        .msg-row.other .reaction-picker { left: 0; }
+        .reaction-picker.open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .reaction-picker button {
+            background: none;
+            border: none;
+            font-size: 18px;
+            line-height: 1;
+            padding: 4px 5px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.15s;
+        }
+        .reaction-picker button:hover {
+            background: var(--surface3);
+            transform: scale(1.25);
+        }
+
+        .msg-reactions {
+            display: flex;
+            gap: 3px;
+            margin-top: 3px;
+            flex-wrap: wrap;
+        }
+        .msg-row.me .msg-reactions { justify-content: flex-end; }
+        .msg-row.other .msg-reactions { justify-content: flex-start; }
+
+        .reaction-pill {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 13px;
+            padding: 2px 7px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            animation: reactionPop 0.25s ease;
+        }
+        @keyframes reactionPop {
+            from { opacity: 0; transform: scale(0.5); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        /* ─── JELENTÉS GOMB ─── */
+        .report-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            font-size: 15px;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+        }
+        .report-btn:hover {
+            border-color: #FFA500;
+            color: #FFA500;
+            background: rgba(255,165,0,0.08);
+        }
+        .report-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        /* ─── MEGERŐSÍTŐ MODAL (jelentés) ─── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5,6,9,0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border-bright);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            width: min(360px, 88vw);
+            transform: translateY(10px);
+            transition: transform 0.2s;
+        }
+        .modal-overlay.open .modal-box { transform: translateY(0); }
+        .modal-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-text {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .modal-btn {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 9px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .modal-btn:hover { border-color: var(--border-bright); }
+        .modal-btn.danger {
+            background: var(--red);
+            border-color: var(--red);
+            color: #fff;
+        }
+        .modal-btn.danger:hover { background: #ff2e57; }
+
         .msg-time {
             font-size: 11px;
             color: var(--text-dim);
@@ -918,6 +1111,7 @@
 
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span class="topic-pill" id="topicPill">#téma</span>
+                    <button class="report-btn" id="reportBtn" onclick="jelentesNyit()" title="Partner jelentése" disabled>⚠️</button>
                     <button class="next-btn" onclick="kovetkezo()">⏭ Következő</button>
                 </div>
             </div>
@@ -961,6 +1155,20 @@
     </div>
 
     <div id="toast"></div>
+
+    <!-- JELENTÉS MEGERŐSÍTŐ MODAL -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal-box">
+            <div class="modal-title">⚠️ Partner jelentése</div>
+            <div class="modal-text">
+                Biztosan jelented a partnered? A beszélgetés naplózásra kerül, és a kapcsolat azonnal megszakad mindkét oldalon.
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn" onclick="jelentesZar()">Mégse</button>
+                <button class="modal-btn danger" onclick="jelentesElkuld()">Jelentés elküldése</button>
+            </div>
+        </div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -1109,6 +1317,7 @@
             document.getElementById('avatarEmoji').textContent = '👤';
             document.getElementById('uzenetInp').disabled = true;
             document.getElementById('sendBtn').disabled = true;
+            document.getElementById('reportBtn').disabled = true;
             document.getElementById('chatEmpty').style.display = 'flex';
         }
 
@@ -1124,6 +1333,7 @@
             document.getElementById('avatarEmoji').textContent = meta.icon;
             document.getElementById('uzenetInp').disabled = false;
             document.getElementById('sendBtn').disabled = false;
+            document.getElementById('reportBtn').disabled = false;
             document.getElementById('chatEmpty').style.display = 'none';
             document.getElementById('typingSender').textContent = partnerNev + ' ír...';
             document.getElementById('uzenetInp').focus();
@@ -1137,12 +1347,15 @@
             document.getElementById('partnerGenderBadge').textContent = '';
             document.getElementById('uzenetInp').disabled = true;
             document.getElementById('sendBtn').disabled = true;
+            document.getElementById('reportBtn').disabled = true;
         }
 
         function clearMessages() {
             const body = document.getElementById('chatBody');
             Array.from(body.querySelectorAll('.msg-row')).forEach(el => el.remove());
             document.getElementById('chatEmpty').style.display = 'flex';
+            pendingOwnMessages = [];
+            closeAllPickers();
         }
 
         // ─── NEMVÁLASZTÓ ──────────────────────────────
@@ -1165,6 +1378,8 @@
         }
 
         let lastSendTime = 0;
+        // A küldött, de még szerver-ID-t nem kapott saját üzeneteink (FIFO sorrendben jönnek az ack-ek)
+        let pendingOwnMessages = [];
 
         function kuldes() {
             const inp = document.getElementById('uzenetInp');
@@ -1189,7 +1404,8 @@
             }
 
             socket.emit('send_message', msg);
-            addMessage(msg, 'me');
+            const localId = addMessage(msg, 'me');
+            pendingOwnMessages.push({ localId, text: msg });
             inp.value = '';
             updateCharCount();
             socket.emit('typing_stop');
@@ -1203,7 +1419,10 @@
         }
 
         // ─── ÜZENETEK ─────────────────────────────────
-        function addMessage(text, type, senderName) {
+        const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮'];
+        let localMsgCounter = 0;
+
+        function addMessage(text, type, senderName, messageId) {
             const body = document.getElementById('chatBody');
             const typingEl = document.getElementById('typingIndicator');
             const isSystem = type === 'system' || type === 'warn';
@@ -1211,7 +1430,21 @@
             const row = document.createElement('div');
             row.className = 'msg-row ' + type;
 
+            const id = messageId || ('local-' + (++localMsgCounter) + '-' + Date.now());
+            if (!isSystem) row.dataset.msgId = id;
+
             const now = new Date().toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+
+            // CSAK a partner üzeneteinél (other) jelenítjük meg a reakció ikont!
+            let pickerHtml = '';
+            if (type === 'other') {
+                pickerHtml = `
+                    <button class="reaction-trigger" onclick="reakcioPickerToggle(event, '${id}')" title="Reagálás">🙂</button>
+                    <div class="reaction-picker" id="picker-${id}">
+                        ${REACTION_EMOJIS.map(e => `<button onclick="reakcioKuldes(event, '${id}', '${e}')">${e}</button>`).join('')}
+                    </div>
+                `;
+            }
 
             if (isSystem) {
                 row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
@@ -1219,25 +1452,108 @@
                 row.innerHTML = `
                     <div class="msg-sender">${escapeHtml(senderName || partnerNev)}</div>
                     <div class="bubble-wrap">
-                        <div class="bubble">${escapeHtml(text)}</div>
+                        <div class="bubble-zone">
+                            <div class="bubble">${escapeHtml(text)}</div>
+                            ${pickerHtml}
+                        </div>
                         <div class="msg-time">${now}</div>
                     </div>
+                    <div class="msg-reactions" id="reactions-${id}"></div>
                 `;
             } else {
-                // 'me'
+                // 'me' - saját üzenetnél nincs pickerHtml
                 row.innerHTML = `
                     <div class="bubble-wrap">
                         <div class="msg-time">${now}</div>
-                        <div class="bubble">${escapeHtml(text)}</div>
+                        <div class="bubble-zone">
+                            <div class="bubble">${escapeHtml(text)}</div>
+                        </div>
                     </div>
+                    <div class="msg-reactions" id="reactions-${id}"></div>
                 `;
             }
 
             body.insertBefore(row, typingEl);
             body.scrollTop = body.scrollHeight;
+            return id;
         }
 
         function addSystemMsg(text) { addMessage(text, 'system'); }
+
+        // ─── REAKCIÓK (emoji picker) ──────────────────
+        let openPickerId = null;
+
+        function closeAllPickers() {
+            document.querySelectorAll('.reaction-picker.open').forEach(p => p.classList.remove('open'));
+            document.querySelectorAll('.reaction-trigger.force-visible').forEach(b => b.classList.remove('force-visible'));
+            openPickerId = null;
+        }
+
+        function reakcioPickerToggle(evt, msgId) {
+            evt.stopPropagation();
+            const picker = document.getElementById('picker-' + msgId);
+            if (!picker) return;
+            const wasOpen = picker.classList.contains('open');
+            closeAllPickers();
+            if (!wasOpen) {
+                picker.classList.add('open');
+                evt.currentTarget.classList.add('force-visible');
+                openPickerId = msgId;
+            }
+        }
+
+        // Picker bezárása, ha máshova kattintunk
+        document.addEventListener('click', closeAllPickers);
+
+       function reakcioKuldes(evt, msgId, emoji) {
+            evt.stopPropagation();
+            closeAllPickers();
+            if (!isConnected) return;
+
+            const container = document.getElementById('reactions-' + msgId);
+            const myName = sajatNev || 'Te';
+            
+            // Megnézzük, hogy mi magunk adtunk-e már ilyen emojit erre az üzenetre
+            const existing = container ? container.querySelector(`[data-emoji="${emoji}"][data-from="${cssEscapeAttr(myName)}"]`) : null;
+
+            if (existing) {
+                // Ha már van rajta ilyenünk, akkor LEVESSZÜK
+                existing.remove();
+                socket.emit('message_reaction', { messageId: msgId, emoji, isRemoved: true });
+            } else {
+                // Ha még nincs, akkor RÁTESSZÜK
+                renderReaction(msgId, emoji, myName);
+                socket.emit('message_reaction', { messageId: msgId, emoji, isRemoved: false });
+            }
+        }
+
+        // ÚJ FÜGGVÉNY: Reakció vizuális eltávolítása a DOM-ból
+        function removeReaction(msgId, emoji, fromName) {
+            const container = document.getElementById('reactions-' + msgId);
+            if (!container) return;
+            const existing = container.querySelector(`[data-emoji="${emoji}"][data-from="${cssEscapeAttr(fromName)}"]`);
+            if (existing) existing.remove();
+        }
+
+        function renderReaction(msgId, emoji, fromName) {
+            const container = document.getElementById('reactions-' + msgId);
+            if (!container) return; // az üzenet esetleg már nincs a DOM-ban (pl. partnerváltás)
+
+            // Ha ugyanaz a személy ugyanazt az emojit már adta, ne dupláz­zuk
+            const existing = container.querySelector(`[data-emoji="${emoji}"][data-from="${cssEscapeAttr(fromName)}"]`);
+            if (existing) return;
+
+            const pill = document.createElement('span');
+            pill.className = 'reaction-pill';
+            pill.dataset.emoji = emoji;
+            pill.dataset.from = fromName;
+            pill.textContent = emoji;
+            container.appendChild(pill);
+        }
+
+        function cssEscapeAttr(str) {
+            return (str || '').replace(/"/g, '');
+        }
 
         function removeLastSystemMsg() {
             const body = document.getElementById('chatBody');
@@ -1286,17 +1602,53 @@
             playConnectSound();
         });
 
-        socket.on('receive_message', ({ text, senderName }) => {
+       socket.on('message_sent_ack', ({ id, text }) => {
+            const idx = pendingOwnMessages.findIndex(p => p.text === text);
+            if (idx === -1) return;
+            const { localId } = pendingOwnMessages[idx];
+            pendingOwnMessages.splice(idx, 1);
+            if (localId === id) return;
+
+            const row = document.querySelector(`.msg-row.me[data-msg-id="${cssEscapeAttr(localId)}"]`);
+            if (!row) return;
+            row.dataset.msgId = id;
+            
+            // Saját üzenetnél már nincs picker, csak a reakció tároló ID-ját kell frissíteni
+            const reactions = row.querySelector('.msg-reactions');
+            if (reactions) reactions.id = 'reactions-' + id;
+        });
+
+        socket.on('receive_message', ({ id, text, senderName }) => {
             hideTyping();
             if (text.startsWith('RENDSZER:')) {
                 addMessage(text.replace('RENDSZER:', '').trim(), 'warn');
             } else {
-                addMessage(text, 'other', senderName);
+                addMessage(text, 'other', senderName, id);
                 // Hang + tab értesítés ha a felhasználó nem látja az oldalt
                 playMessageSound();
                 if (document.hidden) {
                     document.title = '💬 Új üzenet! — RandoChat';
                 }
+            }
+        });
+
+        socket.on('partner_reaction', ({ messageId, emoji, fromName, isRemoved }) => {
+            if (isRemoved) {
+                // Ha a partner visszavonta az emojit
+                removeReaction(messageId, emoji, fromName || partnerNev || 'Partner');
+            } else {
+                // Ha a partner új emojit rakott
+                renderReaction(messageId, emoji, fromName || partnerNev || 'Partner');
+            }
+        });
+
+        socket.on('partner_reaction', ({ messageId, emoji, fromName, isRemoved }) => {
+            if (isRemoved) {
+                // Ha a partner visszavonta az emojit
+                removeReaction(messageId, emoji, fromName || partnerNev || 'Partner');
+            } else {
+                // Ha a partner új emojit rakott
+                renderReaction(messageId, emoji, fromName || partnerNev || 'Partner');
             }
         });
 
@@ -1310,11 +1662,19 @@
         socket.on('partner_left', ({ reason, partnerName }) => {
             setDisconnectedState();
             hideTyping();
+            closeAllPickers();
             if (reason === 'next') {
                 addSystemMsg(`${partnerName || 'A partner'} új partnert keres.`);
+            } else if (reason === 'reported') {
+                addSystemMsg(`A beszélgetést jelentették, a kapcsolat megszakadt.`);
             } else {
                 addSystemMsg(`${partnerName || 'A partner'} elhagyta a chatet.`);
             }
+        });
+
+        socket.on('report_submitted', () => {
+            jelentesZar();
+            showToast('Jelentés elküldve. Köszönjük!');
         });
 
         socket.on('partner_typing', () => {
@@ -1334,6 +1694,24 @@
         function hideTyping() {
             document.getElementById('typingIndicator').classList.remove('visible');
         }
+
+        // ─── JELENTÉS ──────────────────────────────────
+        function jelentesNyit() {
+            if (!isConnected) return;
+            document.getElementById('reportModal').classList.add('open');
+        }
+
+        function jelentesZar() {
+            document.getElementById('reportModal').classList.remove('open');
+        }
+
+        function jelentesElkuld() {
+            socket.emit('report_partner', { reason: 'inappropriate' });
+        }
+
+        document.getElementById('reportModal').addEventListener('click', (e) => {
+            if (e.target.id === 'reportModal') jelentesZar();
+        });
 
         // ─── TOAST ────────────────────────────────────
         function showToast(msg, duration = 2500) {
