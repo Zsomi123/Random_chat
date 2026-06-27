@@ -1,0 +1,30 @@
+[
+  {
+    "id": "4ecea500-3101-46ba-a821-aa9da9c32dad",
+    "ip": "::1",
+    "username": "asd",
+    "socketId": "Lny5GHoQq6nnbHMnAAAJ",
+    "createdAt": "2026-06-27T01:24:06.439Z",
+    "expiresAt": null,
+    "reason": "Nincs megadott ok",
+    "adminName": "admin",
+    "active": false,
+    "expired": false,
+    "unbannedAt": "2026-06-27T01:24:33.454Z",
+    "unbannedBy": "admin"
+  },
+  {
+    "id": "91428cc7-2a29-467a-b800-ba42891da570",
+    "ip": "::1",
+    "username": "asd",
+    "socketId": "8bx6nq--U0yMxxiWAAAZ",
+    "createdAt": "2026-06-27T01:25:37.707Z",
+    "expiresAt": "2026-06-28T01:25:37.707Z",
+    "reason": "bannolbna",
+    "adminName": "admin",
+    "active": false,
+    "expired": false,
+    "unbannedAt": "2026-06-27T01:26:36.235Z",
+    "unbannedBy": "admin"
+  }
+]

@@ -1,0 +1,94 @@
+[
+  {
+    "id": "fe7bf6b3-b8f2-49d6-b180-df6796b3824f",
+    "timestamp": "2026-06-27T01:20:43.538Z",
+    "reporterId": "hCj7ydeO6D-iya5sAAAH",
+    "reporterName": "asd2",
+    "reporterIp": "::1",
+    "reportedId": "L7vtUUq8DsKh6LzCAAAF",
+    "reportedName": "asd",
+    "reportedIp": "::1",
+    "reason": "inappropriate",
+    "recentMessages": [
+      {
+        "id": "4578a249-7278-4075-b53b-3bc329a8a981",
+        "senderId": "L7vtUUq8DsKh6LzCAAAF",
+        "senderName": "asd",
+        "text": "udv",
+        "ts": 1782523225324
+      },
+      {
+        "id": "9d14bb8d-ca2e-4582-90db-d2ea416cd378",
+        "senderId": "hCj7ydeO6D-iya5sAAAH",
+        "senderName": "asd2",
+        "text": "szia",
+        "ts": 1782523228718
+      },
+      {
+        "id": "2b89f948-affc-433d-9443-6c2012405c5a",
+        "senderId": "hCj7ydeO6D-iya5sAAAH",
+        "senderName": "asd2",
+        "text": "reportollak csak ugy",
+        "ts": 1782523240184
+      }
+    ],
+    "status": "dismissed",
+    "adminNote": null,
+    "adminName": "admin"
+  },
+  {
+    "id": "9427bafe-7ed5-427a-8217-d77ca8a0c0cd",
+    "timestamp": "2026-06-27T01:23:16.856Z",
+    "reporterId": "hCj7ydeO6D-iya5sAAAH",
+    "reporterName": "asd2",
+    "reporterIp": "::1",
+    "reportedId": "Lny5GHoQq6nnbHMnAAAJ",
+    "reportedName": "asd",
+    "reportedIp": "::1",
+    "reason": "inappropriate",
+    "recentMessages": [
+      {
+        "id": "95fdbef5-3737-4543-a41d-8574151068c9",
+        "senderId": "Lny5GHoQq6nnbHMnAAAJ",
+        "senderName": "asd",
+        "text": "fasz vagy",
+        "ts": 1782523392867
+      }
+    ],
+    "status": "banned",
+    "adminNote": null,
+    "adminName": "admin",
+    "banId": "4ecea500-3101-46ba-a821-aa9da9c32dad"
+  },
+  {
+    "id": "a5c7f8bc-3f9d-41d1-b845-59790052c205",
+    "timestamp": "2026-06-27T01:25:24.106Z",
+    "reporterId": "K63vYIRFp4_gduHiAAAb",
+    "reporterName": "asd2",
+    "reporterIp": "::1",
+    "reportedId": "8bx6nq--U0yMxxiWAAAZ",
+    "reportedName": "asd",
+    "reportedIp": "::1",
+    "reason": "inappropriate",
+    "recentMessages": [
+      {
+        "id": "0dc5ea00-d8b7-48d0-a252-ca5a835dcad0",
+        "senderId": "8bx6nq--U0yMxxiWAAAZ",
+        "senderName": "asd",
+        "text": "udv",
+        "ts": 1782523517940
+      },
+      {
+        "id": "05f5fe66-a541-4acf-a84a-85926b3cda8d",
+        "senderId": "K63vYIRFp4_gduHiAAAb",
+        "senderName": "asd2",
+        "text": "sdfgg",
+        "ts": 1782523521257
+      }
+    ],
+    "status": "banned",
+    "adminNote": "bannolbna",
+    "adminName": "admin",
+    "banId": "91428cc7-2a29-467a-b800-ba42891da570"
+  }
+]

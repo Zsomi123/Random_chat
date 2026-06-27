@@ -1,11 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
+const session = require('express-session');
 const { Server } = require('socket.io');
 const { OpenAI } = require('openai');
+
+const dbMod = require('./db');
+const { createAdminRouter } = require('./admin');
 
 const app = express();
 const server = http.createServer(app);
@@ -13,39 +15,43 @@ const io = new Server(server);
 
 const openai = new OpenAI();
 
+// ─────────────────────────────────────────────
+// EXPRESS ALAPBEÁLLÍTÁSOK
+// ─────────────────────────────────────────────
+app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'fejleszteshez-csak-ezt-allitsd-be-elesben',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        maxAge: 8 * 3600 * 1000, // 8 óra
+        sameSite: 'lax',
+    },
+}));
+
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
+
+app.get('/admin', (req, res) => {
+    res.sendFile(__dirname + '/admin.html');
+});
+
+// Az admin router callback-et kap, hogy aktív socketeket azonnal bonthasson tiltás esetén
+app.use('/admin', createAdminRouter({ banSocketsCallback: disconnectBannedUser }));
 
 let varolista = {};
 
 // Online felhasználók számlálója
 let onlineSzam = 0;
 
-// Jelentések naplózása (egyszerű, fájlba író log)
-const REPORT_LOG_PATH = path.join(__dirname, 'reports.log');
-
-function logReport({ reporterId, reporterName, reportedId, reportedName, roomMessages, reason }) {
-    const entry = {
-        timestamp: new Date().toISOString(),
-        reporterId,
-        reporterName,
-        reportedId,
-        reportedName,
-        reason: reason || null,
-        recentMessages: roomMessages || []
-    };
-    fs.appendFile(REPORT_LOG_PATH, JSON.stringify(entry) + '\n', (err) => {
-        if (err) console.error('Nem sikerült a jelentést naplózni:', err);
-    });
-}
-
 // Engedélyezett reakció emoji-k — szerver oldali whitelist (dupla védelem)
 const ALLOWED_REACTIONS = new Set(['👍', '❤️', '😂', '😮']);
 
 // Üzenetek rövid puffere szobánként, hogy jelentésnél tudjunk logolni mit látott a user
 const ROOM_HISTORY_LIMIT = 30;
-const roomHistory = new Map(); // szobaNev -> [{ id, senderName, text, ts }]
+const roomHistory = new Map(); // szobaNev -> [{ id, senderId, senderName, text, ts }]
 
 function pushRoomHistory(roomName, entry) {
     if (!roomHistory.has(roomName)) roomHistory.set(roomName, []);
@@ -74,6 +80,59 @@ const USERNAME_RE = /^[a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ_\-]{3,20}$/
 
 function validUsername(name) {
     return typeof name === 'string' && USERNAME_RE.test(name.trim());
+}
+
+// Kliens valós IP-jének kinyerése (proxy mögött is, ha a 'trust proxy' beállítva van)
+function getClientIp(socket) {
+    const forwarded = socket.handshake.headers['x-forwarded-for'];
+    if (forwarded) return forwarded.split(',')[0].trim();
+    return socket.handshake.address;
+}
+
+// Emberi formátum a tiltás lejáratának (vagy "végleges" szövegnek)
+function formatBanExpiry(expiresAt) {
+    if (!expiresAt) return null;
+    // SQLite "YYYY-MM-DD HH:MM:SS" formátumot UTC-ként kezeljük
+    const date = new Date(expiresAt.replace(' ', 'T') + 'Z');
+    return date.toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+// A 'banned' eseményhez küldött adat összeállítása egy ban-rekordból
+function buildBanPayload(ban) {
+    if (!ban) {
+        return {
+            message: 'Ki vagy tiltva a szolgáltatásból.',
+            reason: null,
+            expiresAt: null,
+            permanent: true,
+        };
+    }
+    const expiryLabel = formatBanExpiry(ban.expires_at);
+    return {
+        message: 'Egy moderátor kitiltott a szolgáltatásból.',
+        reason: ban.reason || null,
+        expiresAt: expiryLabel,
+        permanent: !ban.expires_at,
+    };
+}
+
+// Tiltott felhasználó aktív socketjének lekapcsolása (admin akcióból hívva)
+function disconnectBannedUser({ ip, username, socketId }) {
+    for (const [, s] of io.sockets.sockets) {
+        const matches = (socketId && s.id === socketId) ||
+            (username && s.username === username) ||
+            (ip && getClientIp(s) === ip);
+        if (matches) {
+            // Visszanézünk az adatbázisba, hogy a friss tiltás indokát/lejáratát is megkapja a kliens
+            const ban = dbMod.isBanned({ ip: getClientIp(s), username: s.username });
+            s.emit('banned', buildBanPayload(ban));
+            if (s.currentRoom) {
+                s.to(s.currentRoom).emit('partner_left', { reason: 'disconnect', partnerName: s.username });
+                roomHistory.delete(s.currentRoom);
+            }
+            s.disconnect(true);
+        }
+    }
 }
 
 function parositasKiserlel(socket, topic) {
@@ -108,10 +167,23 @@ function parositasKiserlel(socket, topic) {
     }
 }
 
+// Lejárt tiltások időszakos karbantartása
+setInterval(() => dbMod.deactivateExpiredBans(), 5 * 60 * 1000);
+
 io.on('connection', (socket) => {
+    const clientIp = getClientIp(socket);
+
+    // Csatlakozáskor azonnali IP-tiltás ellenőrzés (felhasználónév még nem ismert ezen a ponton)
+    const banAtConnect = dbMod.isBanned({ ip: clientIp });
+    if (banAtConnect) {
+        socket.emit('banned', buildBanPayload(banAtConnect));
+        socket.disconnect(true);
+        return;
+    }
+
     onlineSzam++;
     broadcastOnlineCount();
-    console.log('Csatlakozott:', socket.id, '| Online:', onlineSzam);
+    console.log('Csatlakozott:', socket.id, '| IP:', clientIp, '| Online:', onlineSzam);
 
     socket.on('join_topic', ({ topic, username, gender }) => {
         // Validáljuk a nevet — ha érvénytelen, nem engedjük be
@@ -119,6 +191,15 @@ io.on('connection', (socket) => {
             socket.emit('error_msg', 'Érvénytelen felhasználónév.');
             return;
         }
+
+        // Felhasználónév-alapú tiltás ellenőrzése (most már ismerjük a nevet is)
+        const ban = dbMod.isBanned({ ip: clientIp, username: username.trim() });
+        if (ban) {
+            socket.emit('banned', buildBanPayload(ban));
+            socket.disconnect(true);
+            return;
+        }
+
         socket.username = username.trim();
         socket.topic = topic;
         socket.gender = ['ferfi', 'no'].includes(gender) ? gender : null;
@@ -148,7 +229,7 @@ io.on('connection', (socket) => {
         if (topic) parositasKiserlel(socket, topic);
     });
 
-    // ÚJ: A főmenübe való visszatérés kezelése (Szellem-felhasználók irtása)
+    // A főmenübe való visszatérés kezelése (Szellem-felhasználók irtása)
     socket.on('leave_chat', () => {
         // 1. Ha várakozott, azonnal töröljük a várólistáról
         if (socket.topic && varolista[socket.topic]?.id === socket.id) {
@@ -207,6 +288,9 @@ io.on('connection', (socket) => {
         // Szerver oldali link blokkolás
         if (containsLink(msg)) {
             console.log(`Link blokkolva tőle: ${socket.username} (${socket.id})`);
+            dbMod.logModerationEvent({
+                eventType: 'link_block', username: socket.username, socketId: socket.id, ip: clientIp, detail: { msg }
+            });
             socket.emit('receive_message', {
                 text: 'RENDSZER: Linkek küldése nem engedélyezett.',
                 senderName: 'Rendszer'
@@ -223,6 +307,13 @@ io.on('connection', (socket) => {
 
             if (result.flagged) {
                 console.log(`Blokkolt üzenet: ${socket.username}. Ok:`, result.categories);
+                dbMod.logModerationEvent({
+                    eventType: 'ai_flag',
+                    username: socket.username,
+                    socketId: socket.id,
+                    ip: clientIp,
+                    detail: { msg, categories: result.categories }
+                });
                 socket.emit('receive_message', {
                     text: 'RENDSZER: Az üzeneted nem lett elküldve, mert nem megfelelő tartalmat észleltünk.',
                     senderName: 'Rendszer'
@@ -252,8 +343,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ÚJ: Üzenet reakció (emoji) — valós időben továbbítva a partnernek (Hozzáadás és Törlés)
-    socket.on('message_reaction', ({ messageId, emoji, isRemoved }) => {
+    // Üzenet reakció (emoji) — valós időben továbbítva a partnernek
+    socket.on('message_reaction', ({ messageId, emoji }) => {
         if (!socket.currentRoom) return;
         if (typeof messageId !== 'string' || !messageId) return;
         if (!ALLOWED_REACTIONS.has(emoji)) return;
@@ -261,12 +352,11 @@ io.on('connection', (socket) => {
         socket.to(socket.currentRoom).emit('partner_reaction', {
             messageId,
             emoji,
-            fromName: socket.username,
-            isRemoved: !!isRemoved // Biztosítjuk, hogy boolean (igaz/hamis) legyen
+            fromName: socket.username
         });
     });
 
-    // ÚJ: Jelentés — naplózzuk és automatikusan bontjuk a kapcsolatot
+    // Jelentés — adatbázisba mentjük (kontextussal) és automatikusan bontjuk a kapcsolatot
     socket.on('report_partner', ({ reason } = {}) => {
         if (!socket.currentRoom) return;
 
@@ -279,19 +369,24 @@ io.on('connection', (socket) => {
             }
         }
 
-        logReport({
-            reporterId: socket.id,
-            reporterName: socket.username,
-            reportedId: reportedSocket ? reportedSocket.id : null,
-            reportedName: reportedSocket ? reportedSocket.username : null,
-            roomMessages: roomHistory.get(roomName) || [],
-            reason
+        const messages = roomHistory.get(roomName) || [];
+
+        const reportId = dbMod.createReport({
+            reporterSocketId: socket.id,
+            reporterUsername: socket.username,
+            reporterIp: clientIp,
+            reportedSocketId: reportedSocket ? reportedSocket.id : null,
+            reportedUsername: reportedSocket ? reportedSocket.username : null,
+            reportedIp: reportedSocket ? getClientIp(reportedSocket) : null,
+            roomName,
+            reason,
+            messages,
         });
 
-        console.log(`Jelentés érkezett: ${socket.username} (${socket.id}) jelentette ${reportedSocket ? reportedSocket.username : '???'} (${reportedSocket ? reportedSocket.id : '???'})-t`);
+        console.log(`Jelentés (#${reportId}) érkezett: ${socket.username} (${socket.id}) jelentette ${reportedSocket ? reportedSocket.username : '???'} (${reportedSocket ? reportedSocket.id : '???'})-t`);
 
         // Mindkét fél értesítése + szoba bontása
-        socket.emit('report_submitted');
+        socket.emit('report_submitted', { reportId });
         if (reportedSocket) {
             reportedSocket.emit('partner_left', { reason: 'reported', partnerName: socket.username });
             reportedSocket.currentRoom = null;
@@ -322,4 +417,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Szerver fut: http://localhost:${PORT}`);
+    console.log(`Admin felület: http://localhost:${PORT}/admin`);
 });

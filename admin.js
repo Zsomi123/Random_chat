@@ -74,20 +74,37 @@ function createAdminRouter({ banSocketsCallback } = {}) {
         if (!report) return res.status(404).json({ error: 'Nem található a jelentés.' });
 
         const { durationHours, reason, banIp, banUsername } = req.body || {};
-        const expiresAt = durationHours
-            ? new Date(Date.now() + durationHours * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ')
+
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({ error: 'Az indoklás megadása kötelező.' });
+        }
+
+        const wantsIp = banIp !== false && !!report.reported_ip;
+        const wantsUsername = banUsername !== false && !!report.reported_username;
+        if (!wantsIp && !wantsUsername) {
+            return res.status(400).json({ error: 'Nincs elérhető IP vagy felhasználónév ehhez a jelentéshez.' });
+        }
+
+        const hours = (durationHours !== null && durationHours !== undefined) ? parseInt(durationHours, 10) : null;
+        const expiresAt = (hours && hours > 0)
+            ? new Date(Date.now() + hours * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ')
             : null;
 
         const banId = dbMod.createBan({
-            ip: banIp !== false ? report.reported_ip : null,
-            username: banUsername !== false ? report.reported_username : null,
-            reason: reason || 'Jelentés alapján moderátori döntés',
+            ip: wantsIp ? report.reported_ip : null,
+            username: wantsUsername ? report.reported_username : null,
+            reason: reason.trim(),
             bannedBy: req.session.admin.username,
             expiresAt,
             sourceReportId: id,
         });
 
-        dbMod.updateReportStatus(id, { status: 'resolved', resolvedBy: req.session.admin.username, note: 'Felhasználó kitiltva.' });
+        const durationLabel = expiresAt ? `${hours} órára` : 'véglegesen';
+        dbMod.updateReportStatus(id, {
+            status: 'resolved',
+            resolvedBy: req.session.admin.username,
+            note: `Felhasználó kitiltva (${durationLabel}). Indok: ${reason.trim()}`,
+        });
 
         // Ha él az aktuális socket kapcsolat, azonnal bontjuk
         if (typeof banSocketsCallback === 'function') {
@@ -108,11 +125,15 @@ function createAdminRouter({ banSocketsCallback } = {}) {
         if (!ip && !username) {
             return res.status(400).json({ error: 'Legalább IP vagy felhasználónév szükséges.' });
         }
-        const expiresAt = durationHours
-            ? new Date(Date.now() + durationHours * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ')
+        if (!reason || !reason.trim()) {
+            return res.status(400).json({ error: 'Az indoklás megadása kötelező.' });
+        }
+        const hours = (durationHours !== null && durationHours !== undefined) ? parseInt(durationHours, 10) : null;
+        const expiresAt = (hours && hours > 0)
+            ? new Date(Date.now() + hours * 3600 * 1000).toISOString().slice(0, 19).replace('T', ' ')
             : null;
         const banId = dbMod.createBan({
-            ip, username, reason, bannedBy: req.session.admin.username, expiresAt,
+            ip: ip || null, username: username || null, reason: reason.trim(), bannedBy: req.session.admin.username, expiresAt,
         });
 
         if (typeof banSocketsCallback === 'function') {
@@ -123,7 +144,9 @@ function createAdminRouter({ banSocketsCallback } = {}) {
     });
 
     router.post('/api/bans/:id/lift', requireAuth, (req, res) => {
-        dbMod.liftBan(parseInt(req.params.id, 10));
+        const ban = dbMod.listBans().find(b => b.id === parseInt(req.params.id, 10));
+        if (!ban) return res.status(404).json({ error: 'Nem található a tiltás.' });
+        dbMod.liftBan(ban.id);
         res.json({ ok: true });
     });
 

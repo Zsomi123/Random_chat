@@ -76,6 +76,20 @@ CREATE INDEX IF NOT EXISTS idx_bans_active ON bans(active);
 CREATE INDEX IF NOT EXISTS idx_bans_ip ON bans(ip);
 `);
 
+// ─────────────────────────────────────────────
+// ADMIN SEED — ha még nincs admin user, létrehozzuk env-ből vagy default-ból
+// ─────────────────────────────────────────────
+function ensureDefaultAdmin() {
+    const count = db.prepare('SELECT COUNT(*) AS c FROM admins').get().c;
+    if (count > 0) return;
+
+    const username = process.env.ADMIN_USERNAME || 'admin';
+    const password = process.env.ADMIN_PASSWORD || '123';
+    const hash = bcrypt.hashSync(password, 10);
+    db.prepare('INSERT INTO admins (username, password_hash) VALUES (?, ?)').run(username, hash);
+    console.log(`[admin] Létrehozva egy alap admin fiók: "${username}". KÉRLEK változtasd meg a jelszót / állítsd be az ADMIN_USERNAME és ADMIN_PASSWORD env változókat éles környezetben!`);
+}
+ensureDefaultAdmin();
 
 // ─────────────────────────────────────────────
 // ADMIN HELPEREK

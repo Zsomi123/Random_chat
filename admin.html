@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moderációs Admin — RandoChat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #0D0F14;
+        --surface: #14171F;
+        --surface2: #1C2030;
+        --surface3: #232840;
+        --cyan: #00E5FF;
+        --cyan-dim: rgba(0, 229, 255, 0.12);
+        --text: #E8EDF5;
+        --text-muted: #7A8499;
+        --text-dim: #4A5568;
+        --border: rgba(255,255,255,0.07);
+        --border-bright: rgba(0, 229, 255, 0.25);
+        --red: #FF4B6E;
+        --orange: #FFA500;
+        --green: #00C97A;
+        --radius-sm: 8px;
+        --radius: 12px;
+        --radius-lg: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+    }
+    h1, h2, h3, .brand { font-family: 'Space Grotesk', sans-serif; }
+
+    /* ─── LOGIN ─── */
+    #loginScreen {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 36px;
+        width: min(360px, 90vw);
+    }
+    .login-card .brand {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--cyan);
+        margin-bottom: 4px;
+    }
+    .login-card .sub {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 24px;
+    }
+    .field { margin-bottom: 14px; }
+    .field label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+    }
+    .field input {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        color: var(--text);
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--border-bright); }
+    .btn {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 11px 16px;
+        cursor: pointer;
+        transition: transform 0.15s, opacity 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: var(--cyan); color: #00181C; width: 100%; }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-outline-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+    .btn-outline-green { background: transparent; border: 1px solid var(--green); color: var(--green); }
+    .btn-sm { padding: 6px 11px; font-size: 12.5px; }
+    .login-error {
+        color: var(--red);
+        font-size: 12.5px;
+        margin-top: 10px;
+        min-height: 16px;
+    }
+
+    /* ─── LAYOUT ─── */
+    #appScreen { display: none; min-height: 100vh; }
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 28px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .topbar .brand { color: var(--cyan); font-size: 17px; font-weight: 700; }
+    .topbar .who { color: var(--text-muted); font-size: 13px; }
+    .tabs {
+        display: flex;
+        gap: 6px;
+        padding: 16px 28px 0;
+    }
+    .tab-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 9px 16px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: color 0.2s, background 0.2s;
+    }
+    .tab-btn.active { color: var(--cyan); background: var(--cyan-dim); }
+    .tab-btn .badge {
+        display: inline-block;
+        background: var(--red);
+        color: #fff;
+        font-size: 10.5px;
+        border-radius: 10px;
+        padding: 1px 6px;
+        margin-left: 6px;
+    }
+
+    main { padding: 20px 28px 48px; max-width: 1180px; margin: 0 auto; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ─── STATS CARDS ─── */
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+    }
+    .stat-card .num { font-size: 26px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+    .stat-card .label { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+    .stat-card.pending .num { color: var(--orange); }
+    .stat-card.resolved .num { color: var(--green); }
+    .stat-card.dismissed .num { color: var(--text-muted); }
+    .stat-card.bans .num { color: var(--red); }
+
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin: 28px 0 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* ─── FILTER ROW ─── */
+    .filter-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+    .filter-chip {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 12.5px;
+        font-weight: 500;
+        padding: 7px 13px;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: border-color 0.2s, color 0.2s;
+    }
+    .filter-chip.active { color: var(--cyan); border-color: var(--border-bright); background: var(--cyan-dim); }
+
+    /* ─── REPORT CARDS ─── */
+    .report-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        margin-bottom: 10px;
+    }
+    .report-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        cursor: pointer;
+    }
+    .report-parties { font-size: 14px; }
+    .report-parties b { color: var(--text); }
+    .report-parties .arrow { color: var(--text-dim); margin: 0 6px; }
+    .report-meta { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+    .status-pill {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+    }
+    .status-pill.pending { background: rgba(255,165,0,0.12); color: var(--orange); }
+    .status-pill.resolved { background: rgba(0,201,122,0.12); color: var(--green); }
+    .status-pill.dismissed { background: rgba(122,132,153,0.15); color: var(--text-muted); }
+
+    .report-detail {
+        display: none;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+    }
+    .report-detail.open { display: block; }
+    .chat-log {
+        background: var(--surface2);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        max-height: 220px;
+        overflow-y: auto;
+        font-size: 13px;
+        margin-bottom: 12px;
+    }
+    .chat-log .line { margin-bottom: 6px; line-height: 1.4; }
+    .chat-log .line .name { color: var(--cyan); font-weight: 600; margin-right: 6px; }
+    .chat-log .line .name small { color: var(--text-dim); font-weight: 500; }
+    .chat-log .line.from-reported { background: rgba(255,75,110,0.07); border-radius: 6px; padding: 4px 8px; margin: 0 -8px 6px; }
+    .chat-log .line.from-reported .name { color: var(--red); }
+    .chat-log .empty { color: var(--text-dim); font-style: italic; }
+    .reason-box {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+    }
+    .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .resolution-note {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--border);
+    }
+
+    /* ─── BANS TAB ─── */
+    .ban-form {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        margin-bottom: 18px;
+    }
+    .ban-form .field { margin: 0; min-width: 140px; flex: 1; }
+    .ban-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ban-table th {
+        text-align: left;
+        color: var(--text-muted);
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+    }
+    .ban-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+    }
+    .ban-table tr:last-child td { border-bottom: none; }
+    .ban-table .inactive { color: var(--text-dim); text-decoration: line-through; }
+
+    .empty-state {
+        text-align: center;
+        color: var(--text-dim);
+        padding: 50px 20px;
+        font-size: 13.5px;
+    }
+
+    /* ─── TILTÁS MODAL ─── */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(5,6,9,0.7);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+        background: var(--surface);
+        border: 1px solid var(--border-bright);
+        border-radius: var(--radius-lg);
+        padding: 26px;
+        width: min(440px, 90vw);
+        max-height: 86vh;
+        overflow-y: auto;
+    }
+    .modal-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .modal-sub {
+        font-size: 12.5px;
+        color: var(--text-muted);
+        margin-bottom: 18px;
+    }
+    .modal-sub b { color: var(--text); }
+    .ban-target-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        font-size: 13px;
+    }
+    .ban-target-row label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .ban-target-row code {
+        background: var(--surface2);
+        padding: 1px 6px;
+        border-radius: 4px;
+        color: var(--text);
+        font-size: 12px;
+    }
+    .duration-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .duration-chip {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 12.5px;
+        font-weight: 500;
+        padding: 9px 6px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        text-align: center;
+        transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .duration-chip.active { color: var(--cyan); border-color: var(--border-bright); background: var(--cyan-dim); }
+    .duration-chip.danger-chip.active { color: var(--red); border-color: var(--red); background: rgba(255,75,110,0.1); }
+    .modal-box textarea {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        color: var(--text);
+        font-size: 13.5px;
+        font-family: 'Inter', sans-serif;
+        resize: vertical;
+        min-height: 70px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .modal-box textarea:focus { border-color: var(--border-bright); }
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 18px;
+    }
+    .custom-hours-row {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .custom-hours-row.show { display: flex; }
+    .custom-hours-row input {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 8px 10px;
+        color: var(--text);
+        font-size: 13px;
+        width: 100px;
+        outline: none;
+    }
+
+    /* ─── TOAST ─── */
+    #toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--surface3);
+        border: 1px solid var(--border-bright);
+        color: var(--text);
+        padding: 11px 20px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s, transform 0.25s;
+        z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .muted-link {
+        color: var(--text-muted);
+        font-size: 12.5px;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+</style>
+</head>
+<body>
+
+    <!-- LOGIN -->
+    <div id="loginScreen">
+        <div class="login-card">
+            <div class="brand">🛡️ RandoChat Admin</div>
+            <div class="sub">Moderációs irányítópult</div>
+            <div class="field">
+                <label>Felhasználónév</label>
+                <input type="text" id="loginUser" autocomplete="username">
+            </div>
+            <div class="field">
+                <label>Jelszó</label>
+                <input type="password" id="loginPass" autocomplete="current-password">
+            </div>
+            <button class="btn btn-primary" onclick="login()">Bejelentkezés</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- APP -->
+    <div id="appScreen">
+        <div class="topbar">
+            <div class="brand">🛡️ RandoChat Admin</div>
+            <div style="display:flex; align-items:center; gap:14px;">
+                <span class="who" id="whoLabel"></span>
+                <button class="btn btn-ghost btn-sm" onclick="logout()">Kijelentkezés</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Áttekintés</button>
+            <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Jelentések <span class="badge" id="pendingBadge" style="display:none;">0</span></button>
+            <button class="tab-btn" data-tab="bans" onclick="switchTab('bans')">Tiltások</button>
+        </div>
+
+        <main>
+            <!-- OVERVIEW -->
+            <div class="panel active" id="panel-overview">
+                <div class="stat-grid" id="statGrid"></div>
+                <div class="section-title">Leggyakrabban jelentett felhasználók</div>
+                <table class="ban-table" id="topReportedTable">
+                    <thead><tr><th>Felhasználónév</th><th>IP</th><th>Jelentések száma</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- REPORTS -->
+            <div class="panel" id="panel-reports">
+                <div class="filter-row">
+                    <button class="filter-chip active" data-status="" onclick="filterReports(this, '')">Összes</button>
+                    <button class="filter-chip" data-status="pending" onclick="filterReports(this, 'pending')">Függő</button>
+                    <button class="filter-chip" data-status="resolved" onclick="filterReports(this, 'resolved')">Megoldva</button>
+                    <button class="filter-chip" data-status="dismissed" onclick="filterReports(this, 'dismissed')">Elutasítva</button>
+                </div>
+                <div id="reportsList"></div>
+            </div>
+
+            <!-- BANS -->
+            <div class="panel" id="panel-bans">
+                <div class="ban-form">
+                    <div class="field">
+                        <label>Felhasználónév</label>
+                        <input type="text" id="banUsername" placeholder="pl. Anonymus123">
+                    </div>
+                    <div class="field">
+                        <label>IP cím</label>
+                        <input type="text" id="banIp" placeholder="pl. 1.2.3.4">
+                    </div>
+                    <div class="field">
+                        <label>Indok *</label>
+                        <input type="text" id="banReason" placeholder="Kötelező — pl. spam, zaklatás">
+                    </div>
+                    <div class="field" style="max-width:140px;">
+                        <label>Lejárat (óra)</label>
+                        <input type="number" id="banDuration" placeholder="üres = végleges">
+                    </div>
+                    <button class="btn btn-danger" onclick="createManualBan()">Tiltás létrehozása</button>
+                </div>
+                <table class="ban-table">
+                    <thead>
+                        <tr><th>Felhasználónév</th><th>IP</th><th>Indok</th><th>Létrehozva</th><th>Lejárat</th><th>Állapot</th><th></th></tr>
+                    </thead>
+                    <tbody id="bansTableBody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast"></div>
+
+    <!-- TILTÁS MODAL -->
+    <div class="modal-overlay" id="banModal">
+        <div class="modal-box">
+            <div class="modal-title">⛔ Felhasználó kitiltása</div>
+            <div class="modal-sub" id="banModalSub"></div>
+
+            <div class="ban-target-row">
+                <label><input type="checkbox" id="banTargetUsername" checked> Felhasználónév <code id="banTargetUsernameVal"></code></label>
+                <label><input type="checkbox" id="banTargetIp" checked> IP cím <code id="banTargetIpVal"></code></label>
+            </div>
+
+            <div class="field" style="margin-bottom:10px;">
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">Időtartam</label>
+                <div class="duration-grid">
+                    <div class="duration-chip" data-hours="1" onclick="selectBanDuration(this, 1)">1 óra</div>
+                    <div class="duration-chip" data-hours="24" onclick="selectBanDuration(this, 24)">24 óra</div>
+                    <div class="duration-chip" data-hours="168" onclick="selectBanDuration(this, 168)">7 nap</div>
+                    <div class="duration-chip" data-hours="720" onclick="selectBanDuration(this, 720)">30 nap</div>
+                    <div class="duration-chip" data-hours="custom" onclick="selectBanDuration(this, 'custom')">Egyéni</div>
+                    <div class="duration-chip danger-chip" data-hours="permanent" onclick="selectBanDuration(this, 'permanent')">Végleges</div>
+                </div>
+                <div class="custom-hours-row" id="customHoursRow">
+                    <input type="number" id="customHoursInput" placeholder="óra" min="1">
+                    <span style="color:var(--text-muted); font-size:12.5px;">óra</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">Indoklás (a moderátori naplóba kerül)</label>
+                <textarea id="banReasonText" placeholder="pl. Zaklató, sértő üzenetek a partner felé."></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeBanModal()">Mégse</button>
+                <button class="btn btn-danger" id="banConfirmBtn" onclick="confirmBan()">Kitiltás megerősítése</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+const API = '/admin';
+let currentReportFilter = '';
+let reportsCache = [];
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+async function api(path, options = {}) {
+    const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        ...options,
+    });
+    if (res.status === 401) {
+        showLogin();
+        throw new Error('unauthorized');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Hiba történt.');
+    return data;
+}
+
+// ─── AUTH ────────────────────────────────────
+function showLogin() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display = 'none';
+}
+function showApp(admin) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    document.getElementById('whoLabel').textContent = admin.username;
+    loadOverview();
+}
+
+async function login() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    try {
+        const data = await api('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+        showApp(data.admin);
+    } catch (e) {
+        errEl.textContent = e.message || 'Hibás bejelentkezés.';
+    }
+}
+
+async function logout() {
+    await api('/api/logout', { method: 'POST' });
+    showLogin();
+}
+
+async function checkSession() {
+    try {
+        const data = await api('/api/me');
+        showApp(data.admin);
+    } catch (e) {
+        showLogin();
+    }
+}
+
+document.getElementById('loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+
+// ─── TABS ────────────────────────────────────
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+    if (tab === 'overview') loadOverview();
+    if (tab === 'reports') loadReports();
+    if (tab === 'bans') loadBans();
+}
+
+// ─── OVERVIEW ────────────────────────────────
+async function loadOverview() {
+    try {
+        const { reportCounts, topReported } = await api('/api/stats');
+        const total = reportCounts.pending + reportCounts.resolved + reportCounts.dismissed;
+
+        document.getElementById('statGrid').innerHTML = `
+            <div class="stat-card"><div class="num">${total}</div><div class="label">Összes jelentés</div></div>
+            <div class="stat-card pending"><div class="num">${reportCounts.pending}</div><div class="label">Függő</div></div>
+            <div class="stat-card resolved"><div class="num">${reportCounts.resolved}</div><div class="label">Megoldva</div></div>
+            <div class="stat-card dismissed"><div class="num">${reportCounts.dismissed}</div><div class="label">Elutasítva</div></div>
+        `;
+
+        const badge = document.getElementById('pendingBadge');
+        if (reportCounts.pending > 0) {
+            badge.style.display = 'inline-block';
+            badge.textContent = reportCounts.pending;
+        } else {
+            badge.style.display = 'none';
+        }
+
+        const tbody = document.querySelector('#topReportedTable tbody');
+        tbody.innerHTML = topReported.length
+            ? topReported.map(r => `<tr><td>${escapeHtml(r.username || '—')}</td><td>${escapeHtml(r.ip || '—')}</td><td>${r.c}</td></tr>`).join('')
+            : `<tr><td colspan="3" class="empty-state">Még nincs jelentés.</td></tr>`;
+    } catch (e) { /* showLogin már lekezelve api()-ban */ }
+}
+
+// ─── REPORTS ─────────────────────────────────
+function filterReports(btn, status) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    currentReportFilter = status;
+    loadReports();
+}
+
+async function loadReports() {
+    try {
+        const qs = currentReportFilter ? ('?status=' + currentReportFilter) : '';
+        const { reports } = await api('/api/reports' + qs);
+        reportsCache = reports;
+        renderReports(reports);
+    } catch (e) {}
+}
+
+function renderReports(reports) {
+    const list = document.getElementById('reportsList');
+    if (!reports.length) {
+        list.innerHTML = `<div class="empty-state">Nincs ide tartozó jelentés.</div>`;
+        return;
+    }
+    list.innerHTML = reports.map(r => reportCardHtml(r)).join('');
+}
+
+function reportCardHtml(r) {
+    const date = new Date(r.created_at + 'Z').toLocaleString('hu-HU');
+    return `
+        <div class="report-card" id="report-${r.id}">
+            <div class="report-head" onclick="toggleReport(${r.id})">
+                <div>
+                    <div class="report-parties">
+                        <b>${escapeHtml(r.reporter_username || '—')}</b>
+                        <span class="arrow">jelentette →</span>
+                        <b>${escapeHtml(r.reported_username || '—')}</b>
+                    </div>
+                    <div class="report-meta">${date} · IP: ${escapeHtml(r.reported_ip || 'n/a')}</div>
+                </div>
+                <span class="status-pill ${r.status}">${statusLabel(r.status)}</span>
+            </div>
+            <div class="report-detail" id="report-detail-${r.id}"></div>
+        </div>
+    `;
+}
+
+function statusLabel(s) {
+    return { pending: 'Függő', resolved: 'Megoldva', dismissed: 'Elutasítva' }[s] || s;
+}
+
+async function toggleReport(id) {
+    const detail = document.getElementById('report-detail-' + id);
+    const isOpen = detail.classList.contains('open');
+    // Bezárjuk az összes mást
+    document.querySelectorAll('.report-detail.open').forEach(d => d.classList.remove('open'));
+    if (isOpen) return;
+
+    if (!detail.dataset.loaded) {
+        try {
+            const { report } = await api('/api/reports/' + id);
+            detail.innerHTML = reportDetailHtml(report);
+            detail.dataset.loaded = '1';
+        } catch (e) { return; }
+    }
+    detail.classList.add('open');
+}
+
+function reportDetailHtml(r) {
+    const chatLines = r.messages.length
+        ? r.messages.map(m => {
+            const isReported = r.reported_username && m.sender_name === r.reported_username;
+            const tagClass = isReported ? 'from-reported' : 'from-reporter';
+            const tag = isReported ? '(jelentett)' : '(jelentő)';
+            return `<div class="line ${tagClass}"><span class="name">${escapeHtml(m.sender_name || '???')} <small>${tag}</small>:</span>${escapeHtml(m.text)}</div>`;
+        }).join('')
+        : `<div class="empty">Nincs elérhető üzenetelőzmény ehhez a jelentéshez.</div>`;
+
+    const noteHtml = r.resolution_note
+        ? `<div class="resolution-note">Megjegyzés (${escapeHtml(r.resolved_by || '')}): ${escapeHtml(r.resolution_note)}</div>`
+        : '';
+
+    const actions = r.status === 'pending' ? `
+        <div class="action-row">
+            <button class="btn btn-danger btn-sm" data-report-id="${r.id}" data-username="${escapeHtml(r.reported_username || '')}" data-ip="${escapeHtml(r.reported_ip || '')}" onclick="openBanModalFromBtn(this)">⛔ Felhasználó kitiltása</button>
+            <button class="btn btn-outline-green btn-sm" onclick="resolveReport(${r.id})">✓ Megoldva (tiltás nélkül)</button>
+            <button class="btn btn-ghost btn-sm" onclick="dismissReport(${r.id})">Elutasítás (alaptalan)</button>
+        </div>
+    ` : '';
+
+    return `
+        <div class="reason-box"><b>Jelentő indoklása:</b> ${escapeHtml(r.reason || 'nincs megadva')}<br>Szoba: ${escapeHtml(r.room_name || '—')} · Jelentett IP: <code>${escapeHtml(r.reported_ip || 'n/a')}</code></div>
+        <div class="chat-log">${chatLines}</div>
+        ${actions}
+        ${noteHtml}
+    `;
+}
+
+async function resolveReport(id) {
+    try {
+        await api(`/api/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({}) });
+        showToast('Jelentés megoldva.');
+        invalidateAndReload(id);
+    } catch (e) { showToast(e.message); }
+}
+
+async function dismissReport(id) {
+    try {
+        await api(`/api/reports/${id}/dismiss`, { method: 'POST', body: JSON.stringify({}) });
+        showToast('Jelentés elutasítva.');
+        invalidateAndReload(id);
+    } catch (e) { showToast(e.message); }
+}
+
+// ─── TILTÁS MODAL (jelentésből) ──────────────
+let banModalState = { reportId: null, hours: 24, username: null, ip: null };
+
+function openBanModalFromBtn(btn) {
+    const reportId = parseInt(btn.dataset.reportId, 10);
+    const username = btn.dataset.username || null;
+    const ip = btn.dataset.ip || null;
+    openBanModal(reportId, username, ip);
+}
+
+function openBanModal(reportId, username, ip) {
+    banModalState = { reportId, hours: 24, username, ip };
+
+    document.getElementById('banModalSub').innerHTML = `Kitiltás <b>${escapeHtml(username || 'n/a')}</b> felhasználó ellen, a #${reportId} jelentés alapján.`;
+
+    document.getElementById('banTargetUsername').checked = !!username;
+    document.getElementById('banTargetUsername').disabled = !username;
+    document.getElementById('banTargetUsernameVal').textContent = username || '— nincs adat —';
+
+    document.getElementById('banTargetIp').checked = !!ip;
+    document.getElementById('banTargetIp').disabled = !ip;
+    document.getElementById('banTargetIpVal').textContent = ip || '— nincs adat —';
+
+    document.getElementById('banReasonText').value = '';
+    document.getElementById('customHoursInput').value = '';
+    document.getElementById('customHoursRow').classList.remove('show');
+
+    document.querySelectorAll('.duration-chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('.duration-chip[data-hours="24"]').classList.add('active');
+
+    document.getElementById('banModal').classList.add('open');
+}
+
+function closeBanModal() {
+    document.getElementById('banModal').classList.remove('open');
+}
+
+function selectBanDuration(el, value) {
+    document.querySelectorAll('.duration-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    banModalState.hours = value;
+    document.getElementById('customHoursRow').classList.toggle('show', value === 'custom');
+    if (value === 'custom') document.getElementById('customHoursInput').focus();
+}
+
+async function confirmBan() {
+    const { reportId, hours } = banModalState;
+    const banUsername = document.getElementById('banTargetUsername').checked;
+    const banIp = document.getElementById('banTargetIp').checked;
+    const reason = document.getElementById('banReasonText').value.trim();
+
+    if (!banUsername && !banIp) {
+        showToast('Válassz legalább egy célt (felhasználónév vagy IP).');
+        return;
+    }
+    if (!reason) {
+        showToast('Az indoklás megadása kötelező.');
+        return;
+    }
+
+    let durationHours = null;
+    if (hours === 'custom') {
+        const v = parseInt(document.getElementById('customHoursInput').value, 10);
+        if (!v || v <= 0) { showToast('Adj meg érvényes óraszámot.'); return; }
+        durationHours = v;
+    } else if (hours !== 'permanent') {
+        durationHours = hours;
+    } // 'permanent' esetén marad null → végleges
+
+    const btn = document.getElementById('banConfirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Folyamatban…';
+
+    try {
+        await api(`/api/reports/${reportId}/ban`, {
+            method: 'POST',
+            body: JSON.stringify({ durationHours, reason, banIp, banUsername }),
+        });
+        showToast('Felhasználó kitiltva, jelentés megoldva.');
+        closeBanModal();
+        invalidateAndReload(reportId);
+        loadBans();
+    } catch (e) {
+        showToast(e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Kitiltás megerősítése';
+    }
+}
+
+function invalidateAndReload(id) {
+    const detail = document.getElementById('report-detail-' + id);
+    if (detail) delete detail.dataset.loaded;
+    loadReports();
+    loadOverview();
+}
+
+// ─── BANS ────────────────────────────────────
+async function loadBans() {
+    try {
+        const { bans } = await api('/api/bans');
+        const tbody = document.getElementById('bansTableBody');
+        tbody.innerHTML = bans.length ? bans.map(banRowHtml).join('') : `<tr><td colspan="7" class="empty-state">Nincs még tiltás.</td></tr>`;
+    } catch (e) {}
+}
+
+function banRowHtml(b) {
+    const expired = b.expires_at && new Date(b.expires_at + 'Z') < new Date();
+    const isActive = b.active && !expired;
+    const cls = isActive ? '' : 'inactive';
+    const sourceTag = b.source_report_id ? ` <span class="muted-link" style="text-decoration:none; color:var(--text-dim);">(#${b.source_report_id} jelentésből)</span>` : '';
+    return `
+        <tr>
+            <td class="${cls}">${escapeHtml(b.username || '—')}</td>
+            <td class="${cls}">${escapeHtml(b.ip || '—')}</td>
+            <td class="${cls}">${escapeHtml(b.reason || '—')}${sourceTag}<br><small style="color:var(--text-dim);">${escapeHtml(b.banned_by || '')}</small></td>
+            <td class="${cls}">${new Date(b.created_at + 'Z').toLocaleDateString('hu-HU')}</td>
+            <td class="${cls}">${b.expires_at ? new Date(b.expires_at + 'Z').toLocaleString('hu-HU') : 'végleges'}</td>
+            <td>${isActive ? '<span class="status-pill pending">Aktív</span>' : '<span class="status-pill dismissed">Inaktív</span>'}</td>
+            <td>${isActive ? `<span class="muted-link" onclick="liftBan(${b.id})">feloldás</span>` : ''}</td>
+        </tr>
+    `;
+}
+
+async function createManualBan() {
+    const username = document.getElementById('banUsername').value.trim();
+    const ip = document.getElementById('banIp').value.trim();
+    const reason = document.getElementById('banReason').value.trim();
+    const durationHours = document.getElementById('banDuration').value ? parseInt(document.getElementById('banDuration').value, 10) : null;
+
+    if (!username && !ip) { showToast('Adj meg legalább egy felhasználónevet vagy IP-t.'); return; }
+    if (!reason) { showToast('Az indoklás megadása kötelező.'); return; }
+
+    try {
+        await api('/api/bans', { method: 'POST', body: JSON.stringify({ username: username || null, ip: ip || null, reason, durationHours }) });
+        showToast('Tiltás létrehozva.');
+        document.getElementById('banUsername').value = '';
+        document.getElementById('banIp').value = '';
+        document.getElementById('banReason').value = '';
+        document.getElementById('banDuration').value = '';
+        loadBans();
+    } catch (e) { showToast(e.message); }
+}
+
+async function liftBan(id) {
+    try {
+        await api(`/api/bans/${id}/lift`, { method: 'POST' });
+        showToast('Tiltás feloldva.');
+        loadBans();
+    } catch (e) { showToast(e.message); }
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+checkSession();
+</script>
+</body>
+</html>

@@ -746,6 +746,58 @@
         }
         .modal-btn.danger:hover { background: #ff2e57; }
 
+        /* ─── KITILTVA OVERLAY ─── */
+        .banned-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            text-align: center;
+            padding: 24px;
+        }
+        .banned-overlay.show { display: flex; }
+        .banned-box { max-width: 380px; }
+        .banned-box .icon { font-size: 44px; margin-bottom: 14px; }
+        .banned-box h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: var(--red);
+        }
+        .banned-box p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .banned-detail {
+            margin-top: 14px;
+            background: rgba(255,75,110,0.08);
+            border: 1px solid rgba(255,75,110,0.25);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .banned-detail-label {
+            font-size: 11.5px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+        }
+        .banned-detail-value {
+            font-size: 13.5px;
+            color: var(--text);
+            font-weight: 500;
+            text-align: right;
+        }
+
         .msg-time {
             font-size: 11px;
             color: var(--text-dim);
@@ -1170,6 +1222,22 @@
         </div>
     </div>
 
+    <div class="banned-overlay" id="bannedOverlay">
+        <div class="banned-box">
+            <div class="icon">🚫</div>
+            <h2>Ki vagy tiltva</h2>
+            <p id="bannedMsg">Egy moderátor kitiltott a szolgáltatásból a közösségi szabályok megsértése miatt.</p>
+            <div class="banned-detail" id="bannedReasonRow" style="display:none;">
+                <span class="banned-detail-label">Indok</span>
+                <span class="banned-detail-value" id="bannedReasonVal"></span>
+            </div>
+            <div class="banned-detail" id="bannedExpiryRow" style="display:none;">
+                <span class="banned-detail-label">Időtartam</span>
+                <span class="banned-detail-value" id="bannedExpiryVal"></span>
+            </div>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -1430,21 +1498,18 @@
             const row = document.createElement('div');
             row.className = 'msg-row ' + type;
 
+            // Saját üzeneteknek is adunk egy lokális azonosítót, hátha a szerver ack előbb/később jön
             const id = messageId || ('local-' + (++localMsgCounter) + '-' + Date.now());
             if (!isSystem) row.dataset.msgId = id;
 
             const now = new Date().toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
 
-            // CSAK a partner üzeneteinél (other) jelenítjük meg a reakció ikont!
-            let pickerHtml = '';
-            if (type === 'other') {
-                pickerHtml = `
-                    <button class="reaction-trigger" onclick="reakcioPickerToggle(event, '${id}')" title="Reagálás">🙂</button>
-                    <div class="reaction-picker" id="picker-${id}">
-                        ${REACTION_EMOJIS.map(e => `<button onclick="reakcioKuldes(event, '${id}', '${e}')">${e}</button>`).join('')}
-                    </div>
-                `;
-            }
+            const pickerHtml = `
+                <button class="reaction-trigger" onclick="reakcioPickerToggle(event, '${id}')" title="Reagálás">🙂</button>
+                <div class="reaction-picker" id="picker-${id}">
+                    ${REACTION_EMOJIS.map(e => `<button onclick="reakcioKuldes(event, '${id}', '${e}')">${e}</button>`).join('')}
+                </div>
+            `;
 
             if (isSystem) {
                 row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
@@ -1461,12 +1526,13 @@
                     <div class="msg-reactions" id="reactions-${id}"></div>
                 `;
             } else {
-                // 'me' - saját üzenetnél nincs pickerHtml
+                // 'me'
                 row.innerHTML = `
                     <div class="bubble-wrap">
                         <div class="msg-time">${now}</div>
                         <div class="bubble-zone">
                             <div class="bubble">${escapeHtml(text)}</div>
+                            ${pickerHtml}
                         </div>
                     </div>
                     <div class="msg-reactions" id="reactions-${id}"></div>
@@ -1505,34 +1571,12 @@
         // Picker bezárása, ha máshova kattintunk
         document.addEventListener('click', closeAllPickers);
 
-       function reakcioKuldes(evt, msgId, emoji) {
+        function reakcioKuldes(evt, msgId, emoji) {
             evt.stopPropagation();
             closeAllPickers();
             if (!isConnected) return;
-
-            const container = document.getElementById('reactions-' + msgId);
-            const myName = sajatNev || 'Te';
-            
-            // Megnézzük, hogy mi magunk adtunk-e már ilyen emojit erre az üzenetre
-            const existing = container ? container.querySelector(`[data-emoji="${emoji}"][data-from="${cssEscapeAttr(myName)}"]`) : null;
-
-            if (existing) {
-                // Ha már van rajta ilyenünk, akkor LEVESSZÜK
-                existing.remove();
-                socket.emit('message_reaction', { messageId: msgId, emoji, isRemoved: true });
-            } else {
-                // Ha még nincs, akkor RÁTESSZÜK
-                renderReaction(msgId, emoji, myName);
-                socket.emit('message_reaction', { messageId: msgId, emoji, isRemoved: false });
-            }
-        }
-
-        // ÚJ FÜGGVÉNY: Reakció vizuális eltávolítása a DOM-ból
-        function removeReaction(msgId, emoji, fromName) {
-            const container = document.getElementById('reactions-' + msgId);
-            if (!container) return;
-            const existing = container.querySelector(`[data-emoji="${emoji}"][data-from="${cssEscapeAttr(fromName)}"]`);
-            if (existing) existing.remove();
+            renderReaction(msgId, emoji, sajatNev || 'Te');
+            socket.emit('message_reaction', { messageId: msgId, emoji });
         }
 
         function renderReaction(msgId, emoji, fromName) {
@@ -1595,6 +1639,32 @@
         // ─── SOCKET EVENTS ────────────────────────────
         socket.on('waiting', () => setWaitingState());
 
+        socket.on('banned', ({ message, reason, expiresAt, permanent }) => {
+            if (message) document.getElementById('bannedMsg').textContent = message;
+
+            const reasonRow = document.getElementById('bannedReasonRow');
+            if (reason) {
+                document.getElementById('bannedReasonVal').textContent = reason;
+                reasonRow.style.display = 'flex';
+            } else {
+                reasonRow.style.display = 'none';
+            }
+
+            const expiryRow = document.getElementById('bannedExpiryRow');
+            if (permanent) {
+                document.getElementById('bannedExpiryVal').textContent = 'Végleges tiltás';
+                expiryRow.style.display = 'flex';
+            } else if (expiresAt) {
+                document.getElementById('bannedExpiryVal').textContent = 'Visszatérhetsz: ' + expiresAt;
+                expiryRow.style.display = 'flex';
+            } else {
+                expiryRow.style.display = 'none';
+            }
+
+            document.getElementById('bannedOverlay').classList.add('show');
+            jelentesZar();
+        });
+
         socket.on('chat_ready', ({ message, partnerUsername, partnerGender }) => {
             removeLastSystemMsg();
             setConnectedState(aktualisTema, partnerUsername, partnerGender);
@@ -1602,7 +1672,8 @@
             playConnectSound();
         });
 
-       socket.on('message_sent_ack', ({ id, text }) => {
+        socket.on('message_sent_ack', ({ id, text }) => {
+            // Megkeressük a megfelelő DOM elemet a pending lista alapján (FIFO) és rárakjuk a valódi ID-t
             const idx = pendingOwnMessages.findIndex(p => p.text === text);
             if (idx === -1) return;
             const { localId } = pendingOwnMessages[idx];
@@ -1612,10 +1683,16 @@
             const row = document.querySelector(`.msg-row.me[data-msg-id="${cssEscapeAttr(localId)}"]`);
             if (!row) return;
             row.dataset.msgId = id;
-            
-            // Saját üzenetnél már nincs picker, csak a reakció tároló ID-ját kell frissíteni
+            const picker = row.querySelector('.reaction-picker');
+            const trigger = row.querySelector('.reaction-trigger');
             const reactions = row.querySelector('.msg-reactions');
+            if (picker) picker.id = 'picker-' + id;
             if (reactions) reactions.id = 'reactions-' + id;
+            if (trigger) trigger.setAttribute('onclick', `reakcioPickerToggle(event, '${id}')`);
+            row.querySelectorAll('.reaction-picker button').forEach(btn => {
+                const emoji = btn.textContent;
+                btn.setAttribute('onclick', `reakcioKuldes(event, '${id}', '${emoji}')`);
+            });
         });
 
         socket.on('receive_message', ({ id, text, senderName }) => {
@@ -1632,24 +1709,8 @@
             }
         });
 
-        socket.on('partner_reaction', ({ messageId, emoji, fromName, isRemoved }) => {
-            if (isRemoved) {
-                // Ha a partner visszavonta az emojit
-                removeReaction(messageId, emoji, fromName || partnerNev || 'Partner');
-            } else {
-                // Ha a partner új emojit rakott
-                renderReaction(messageId, emoji, fromName || partnerNev || 'Partner');
-            }
-        });
-
-        socket.on('partner_reaction', ({ messageId, emoji, fromName, isRemoved }) => {
-            if (isRemoved) {
-                // Ha a partner visszavonta az emojit
-                removeReaction(messageId, emoji, fromName || partnerNev || 'Partner');
-            } else {
-                // Ha a partner új emojit rakott
-                renderReaction(messageId, emoji, fromName || partnerNev || 'Partner');
-            }
+        socket.on('partner_reaction', ({ messageId, emoji, fromName }) => {
+            renderReaction(messageId, emoji, fromName || partnerNev || 'Partner');
         });
 
         // Ha visszatér a fülre, visszaállítjuk a title-t
