@@ -382,6 +382,7 @@
     }
     .duration-chip.active { color: var(--cyan); border-color: var(--border-bright); background: var(--cyan-dim); }
     .duration-chip.danger-chip.active { color: var(--red); border-color: var(--red); background: rgba(255,75,110,0.1); }
+    
     .modal-box textarea {
         width: 100%;
         background: var(--surface2);
@@ -396,6 +397,22 @@
         outline: none;
         transition: border-color 0.2s;
     }
+
+.modal-box select {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        color: var(--text);
+        font-size: 13.5px;
+        font-family: 'Inter', sans-serif;
+        outline: none;
+        margin-bottom: 12px;
+        transition: border-color 0.2s;
+    }
+    .modal-box select:focus { border-color: var(--border-bright); }
+
     .modal-box textarea:focus { border-color: var(--border-bright); }
     .modal-actions {
         display: flex;
@@ -567,6 +584,16 @@
             </div>
 
             <div class="field">
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">Előre megírt indok (Gyorsválasztó)</label>
+                <!-- ÚJ: Lenyíló menü, ami kiválasztáskor automatikusan kitölti a szövegdobozt -->
+                <select id="banReasonSelect" onchange="document.getElementById('banReasonText').value = this.value">
+                    <option value="">-- Válassz egyet, vagy írj be egyedit lent --</option>
+                    <option value="Sértő megjegyzések, minősíthetetlen stílus">Sértő megjegyzések, minősíthetetlen stílus</option>
+                    <option value="Spam / Kéretlen hirdetések terjesztése">Spam / Kéretlen hirdetések terjesztése</option>
+                    <option value="Szexuális tartalom, kéretlen közeledés">Szexuális tartalom, kéretlen közeledés</option>
+                    <option value="A közösségi irányelvek többszöri megsértése">A közösségi irányelvek többszöri megsértése</option>
+                </select>
+
                 <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">Indoklás (a moderátori naplóba kerül)</label>
                 <textarea id="banReasonText" placeholder="pl. Zaklató, sértő üzenetek a partner felé."></textarea>
             </div>
@@ -819,7 +846,9 @@ function openBanModal(reportId, username, ip) {
     document.getElementById('banTargetIp').disabled = !ip;
     document.getElementById('banTargetIpVal').textContent = ip || '— nincs adat —';
 
+    // Ürítjük a mezőket
     document.getElementById('banReasonText').value = '';
+    document.getElementById('banReasonSelect').value = ''; // <--- Ezt a sort add hozzá!
     document.getElementById('customHoursInput').value = '';
     document.getElementById('customHoursRow').classList.remove('show');
 

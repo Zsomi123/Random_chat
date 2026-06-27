@@ -1209,12 +1209,34 @@
     <div id="toast"></div>
 
     <!-- JELENTÉS MEGERŐSÍTŐ MODAL -->
+    <!-- JELENTÉS MEGERŐSÍTŐ MODAL -->
     <div class="modal-overlay" id="reportModal">
         <div class="modal-box">
             <div class="modal-title">⚠️ Partner jelentése</div>
-            <div class="modal-text">
-                Biztosan jelented a partnered? A beszélgetés naplózásra kerül, és a kapcsolat azonnal megszakad mindkét oldalon.
+            <div class="modal-text" style="margin-bottom: 12px;">
+                Kérlek válaszd ki, hogy miért jelented a partnert (többet is bejelölhetsz):
             </div>
+            
+            <!-- ÚJ: Checkbox lista az indokoknak -->
+            <div class="report-reasons" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+                    <input type="checkbox" class="report-reason-cb" value="Spam / Hirdetés" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Spam / Hirdetés
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+                    <input type="checkbox" class="report-reason-cb" value="Sértő megjegyzések" style="accent-color: var(--cyan); width: 16px; height: 16px;">Sértő megjegyzések
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+                    <input type="checkbox" class="report-reason-cb" value="Szexuális tartalom / Zaklatás" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Szexuális tartalom / Zaklatás
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+                    <input type="checkbox" class="report-reason-cb" value="Egyéb szabályszegés" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Egyéb szabályszegés
+                </label>
+            </div>
+
+            <div class="modal-text" style="font-size: 12px; color: var(--text-dim);">
+                A beszélgetés naplózásra kerül, és a kapcsolat azonnal megszakad mindkét oldalon.
+            </div>
+            
             <div class="modal-actions">
                 <button class="modal-btn" onclick="jelentesZar()">Mégse</button>
                 <button class="modal-btn danger" onclick="jelentesElkuld()">Jelentés elküldése</button>
@@ -1781,6 +1803,8 @@
         // ─── JELENTÉS ──────────────────────────────────
         function jelentesNyit() {
             if (!isConnected) return;
+            // Modál nyitásakor töröljük a korábbi pipákat
+            document.querySelectorAll('.report-reason-cb').forEach(cb => cb.checked = false);
             document.getElementById('reportModal').classList.add('open');
         }
 
@@ -1789,9 +1813,15 @@
         }
 
         function jelentesElkuld() {
-            socket.emit('report_partner', { reason: 'inappropriate' });
+            // Összegyűjtjük a bejelölt indokokat
+            const checkedBoxes = document.querySelectorAll('.report-reason-cb:checked');
+            const reasons = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            // Ha nem jelölt be semmit, akkor egy alapértelmezett szöveg megy el
+            const finalReason = reasons.length > 0 ? reasons.join(', ') : 'Nem részletezte';
+            
+            socket.emit('report_partner', { reason: finalReason });
         }
-
         document.getElementById('reportModal').addEventListener('click', (e) => {
             if (e.target.id === 'reportModal') jelentesZar();
         });
