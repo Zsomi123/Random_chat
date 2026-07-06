@@ -5,22 +5,51 @@ const crypto = require('crypto');
 const session = require('express-session');
 const { Server } = require('socket.io');
 const { OpenAI } = require('openai');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const dbMod = require('./db');
 const { createAdminRouter } = require('./admin');
 
 const app = express();
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'fejleszteshez-csak-ezt-allitsd-be-elesben') {
+    console.error('KRITIKUS HIBA: A SESSION_SECRET nincs megfelelően beállítva a .env fájlban!');
+    process.exit(1);
+}
 const server = http.createServer(app);
 const io = new Server(server);
 
 const openai = new OpenAI();
 
 // ─────────────────────────────────────────────
-// EXPRESS ALAPBEÁLLÍTÁSOK
+// EXPRESS ALAPBEÁLLÍTÁSOK ÉS VÉDELEM
 // ─────────────────────────────────────────────
+app.use(helmet({
+    contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+            "script-src": ["'self'", "'unsafe-inline'"],
+            "script-src-attr": ["'unsafe-inline'"],
+        }
+    }
+}));
 app.use(express.json());
+
+// Bejelentkezési próbálkozások korlátozása (Rate Limiter)
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 perc időablak
+    max: 5, // Maximum 5 próbálkozás IP címenként ezen az időablakon belül
+    message: { error: 'Túl sok hibás bejelentkezési próbálkozás. Kérlek, próbáld újra 15 perc múlva.' },
+    standardHeaders: true, // Visszaadja a RateLimit-* fejléceket
+    legacyHeaders: false, // Letiltja a régi X-RateLimit-* fejléceket
+});
+
+// A védelmet KIZÁRÓLAG az admin login végpontra tesszük rá
+app.use('/admin/api/login', loginLimiter);
+
+// Ide jön az eredeti session beállításod (immár a biztonságos SESSION_SECRET-tel)
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fejleszteshez-csak-ezt-allitsd-be-elesben',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -29,6 +58,7 @@ app.use(session({
         sameSite: 'lax',
     },
 }));
+
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
