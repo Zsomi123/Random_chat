@@ -22,6 +22,21 @@ const io = new Server(server);
 const openai = new OpenAI();
 
 // ─────────────────────────────────────────────
+// PROXY / IP-KEZELÉS BEÁLLÍTÁSA
+// ─────────────────────────────────────────────
+// Csak akkor bízzunk az X-Forwarded-For fejlécben, ha TÉNYLEG megbízható reverse proxy
+// (pl. nginx, Cloudflare, Render, Heroku stb.) mögött fut az app. Enélkül bárki
+// hamisíthatja a saját IP-jét, és megkerülheti a tiltásokat, vagy másra kenheti azokat.
+const TRUST_PROXY = process.env.TRUST_PROXY === '1' || process.env.TRUST_PROXY === 'true';
+if (TRUST_PROXY) {
+    // Csak 1 proxy-ugrásnak higgyünk (állítsd a valós topológiának megfelelően,
+    // ha több proxy réteg van, pl. Cloudflare + nginx -> 2)
+    app.set('trust proxy', process.env.TRUST_PROXY_HOPS ? parseInt(process.env.TRUST_PROXY_HOPS, 10) : 1);
+} else {
+    console.warn('[figyelem] TRUST_PROXY nincs bekapcsolva — az X-Forwarded-For fejléc figyelmen kívül lesz hagyva, a nyers socket-IP kerül felhasználásra. Ha reverse proxy mögött futsz (nginx, Cloudflare, load balancer), állítsd be a TRUST_PROXY=1 env változót, különben a tiltások helytelenül fognak működni.');
+}
+
+// ─────────────────────────────────────────────
 // EXPRESS ALAPBEÁLLÍTÁSOK ÉS VÉDELEM
 // ─────────────────────────────────────────────
 app.use(helmet({
@@ -33,7 +48,8 @@ app.use(helmet({
         }
     }
 }));
-app.use(express.json());
+// Body méret korlátozása — véletlen/szándékos túlterheléses kérések ellen
+app.use(express.json({ limit: '20kb' }));
 
 // Bejelentkezési próbálkozások korlátozása (Rate Limiter)
 const loginLimiter = rateLimit({
@@ -56,6 +72,9 @@ app.use(session({
         httpOnly: true,
         maxAge: 8 * 3600 * 1000, // 8 óra
         sameSite: 'lax',
+        // Production módban (HTTPS mögött) csak titkosított kapcsolaton menjen a cookie.
+        // Fejlesztéskor (http://localhost) ez false, hogy működjön TLS nélkül is.
+        secure: process.env.NODE_ENV === 'production',
     },
 }));
 
@@ -71,7 +90,22 @@ app.get('/admin', (req, res) => {
 // Az admin router callback-et kap, hogy aktív socketeket azonnal bonthasson tiltás esetén
 app.use('/admin', createAdminRouter({ banSocketsCallback: disconnectBannedUser }));
 
-let varolista = {};
+// Map-et használunk plain object helyett, hogy a felhasználó által küldött 'topic'
+// érték semmiképp ne tudjon kulcsként olyan speciális néven landolni
+// (pl. '__proto__', 'constructor'), ami object literál esetén gondot okozhatna.
+const varolista = new Map();
+
+// Elfogadott témák whitelist-je + hossz-/formátumkorlát a 'topic' mezőre.
+// Igazítsd a valós témalistádhoz (amit az index.html kínál fel).
+const TOPIC_RE = /^[a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ_\-]{1,40}$/;
+function validTopic(topic) {
+    return typeof topic === 'string' && TOPIC_RE.test(topic.trim());
+}
+
+// Szerver oldali üzenethossz-korlát (a kliens 500 karakterben limitál, de ez
+// csak UI-kényelem — enélkül bárki tetszőleges méretű üzenetet küldhetne
+// közvetlenül a socketen keresztül, megkerülve a böngésző JS-t).
+const MAX_MESSAGE_LENGTH = 1000;
 
 // Online felhasználók számlálója
 let onlineSzam = 0;
@@ -112,10 +146,16 @@ function validUsername(name) {
     return typeof name === 'string' && USERNAME_RE.test(name.trim());
 }
 
-// Kliens valós IP-jének kinyerése (proxy mögött is, ha a 'trust proxy' beállítva van)
+// Kliens valós IP-jének kinyerése.
+// FONTOS: az X-Forwarded-For fejlécet KIZÁRÓLAG akkor vesszük figyelembe, ha a szerver
+// explicit be van állítva megbízható reverse proxy mögé (TRUST_PROXY=1). Enélkül ez a
+// fejléc bármilyen kliens által szabadon hamisítható, ami lehetővé tenné a tiltások
+// megkerülését, vagy ártatlan felhasználók IP-jének hamis megjelölését/tiltását.
 function getClientIp(socket) {
-    const forwarded = socket.handshake.headers['x-forwarded-for'];
-    if (forwarded) return forwarded.split(',')[0].trim();
+    if (TRUST_PROXY) {
+        const forwarded = socket.handshake.headers['x-forwarded-for'];
+        if (forwarded) return forwarded.split(',')[0].trim();
+    }
     return socket.handshake.address;
 }
 
@@ -166,8 +206,8 @@ function disconnectBannedUser({ ip, username, socketId }) {
 }
 
 function parositasKiserlel(socket, topic) {
-    if (varolista[topic] && varolista[topic].id !== socket.id) {
-        const par = varolista[topic];
+    const par = varolista.get(topic);
+    if (par && par.id !== socket.id) {
         const szobaNev = `szoba_${par.id}_${socket.id}`;
 
         socket.join(szobaNev);
@@ -189,10 +229,10 @@ function parositasKiserlel(socket, topic) {
                 partnerGender: socket.gender || null
             });
 
-            delete varolista[topic];
+            varolista.delete(topic);
         }
     } else {
-        varolista[topic] = { id: socket.id, username: socket.username, gender: socket.gender || null };
+        varolista.set(topic, { id: socket.id, username: socket.username, gender: socket.gender || null });
         socket.emit('waiting', 'Várakozás egy partnerre...');
     }
 }
@@ -219,6 +259,12 @@ io.on('connection', (socket) => {
         // Validáljuk a nevet — ha érvénytelen, nem engedjük be
         if (!validUsername(username)) {
             socket.emit('error_msg', 'Érvénytelen felhasználónév.');
+            return;
+        }
+
+        // Validáljuk a témát is — tetszőleges/hosszú string helyett csak a megengedett formátumot fogadjuk el
+        if (!validTopic(topic)) {
+            socket.emit('error_msg', 'Érvénytelen téma.');
             return;
         }
 
@@ -262,8 +308,8 @@ io.on('connection', (socket) => {
     // A főmenübe való visszatérés kezelése (Szellem-felhasználók irtása)
     socket.on('leave_chat', () => {
         // 1. Ha várakozott, azonnal töröljük a várólistáról
-        if (socket.topic && varolista[socket.topic]?.id === socket.id) {
-            delete varolista[socket.topic];
+        if (socket.topic && varolista.get(socket.topic)?.id === socket.id) {
+            varolista.delete(socket.topic);
         }
 
         // 2. Ha épp chatezett valakivel, bontsuk a szobát
@@ -299,6 +345,16 @@ io.on('connection', (socket) => {
 
     socket.on('send_message', async (msg) => {
         if (!socket.currentRoom) return;
+
+        // Alapvető típus- és hosszellenőrzés — a kliens csak UI-kényelemből limitál,
+        // szerver oldalon enélkül tetszőleges méretű payloadot lehetne küldeni.
+        if (typeof msg !== 'string' || !msg.trim() || msg.length > MAX_MESSAGE_LENGTH) {
+            socket.emit('receive_message', {
+                text: 'RENDSZER: Érvénytelen vagy túl hosszú üzenet.',
+                senderName: 'Rendszer'
+            });
+            return;
+        }
 
         // Spam cooldown ellenőrzés
         const now = Date.now();
@@ -435,8 +491,8 @@ io.on('connection', (socket) => {
         broadcastOnlineCount();
         lastMessageTime.delete(socket.id);
 
-        if (socket.topic && varolista[socket.topic]?.id === socket.id) {
-            delete varolista[socket.topic];
+        if (socket.topic && varolista.get(socket.topic)?.id === socket.id) {
+            varolista.delete(socket.topic);
         }
         if (socket.currentRoom) {
             socket.to(socket.currentRoom).emit('partner_left', { reason: 'disconnect', partnerName: socket.username });

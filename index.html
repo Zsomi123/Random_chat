@@ -1783,6 +1783,13 @@
 
         socket.on('report_submitted', () => {
             jelentesZar();
+            // A jelentő oldalán is le kell zárni a beszélgetést — a szerver már
+            // ekkor kilépteti a szobából, tehát a felületnek is ezt kell mutatnia,
+            // különben a jelentő azt hinné, hogy még tud írni a partnernek.
+            setDisconnectedState();
+            hideTyping();
+            closeAllPickers();
+            addSystemMsg('A beszélgetést jelentetted, a kapcsolat megszakadt.');
             showToast('Jelentés elküldve. Köszönjük!');
         });
 

@@ -85,6 +85,22 @@ function ensureDefaultAdmin() {
 
     const username = process.env.ADMIN_USERNAME || 'admin';
     const password = process.env.ADMIN_PASSWORD || '123';
+
+    // Éles környezetben KEMÉNYEN megtagadjuk az indulást, ha nincs beállítva
+    // rendes ADMIN_USERNAME/ADMIN_PASSWORD, vagy ha a jelszó túl gyenge.
+    // Enélkül egy production deploy simán elindulna admin/123 hitelesítő adatokkal,
+    // ami triviálisan feltörhető admin hozzáférést jelentene.
+    if (process.env.NODE_ENV === 'production') {
+        if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) {
+            console.error('KRITIKUS HIBA: Production módban kötelező beállítani az ADMIN_USERNAME és ADMIN_PASSWORD env változókat. Az alapértelmezett admin/123 fiók éles környezetben nem engedélyezett.');
+            process.exit(1);
+        }
+        if (process.env.ADMIN_PASSWORD.length < 12) {
+            console.error('KRITIKUS HIBA: Az ADMIN_PASSWORD túl rövid (minimum 12 karakter szükséges production módban).');
+            process.exit(1);
+        }
+    }
+
     const hash = bcrypt.hashSync(password, 10);
     db.prepare('INSERT INTO admins (username, password_hash) VALUES (?, ?)').run(username, hash);
     console.log(`[admin] Létrehozva egy alap admin fiók: "${username}". KÉRLEK változtasd meg a jelszót / állítsd be az ADMIN_USERNAME és ADMIN_PASSWORD env változókat éles környezetben!`);

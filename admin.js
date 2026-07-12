@@ -23,8 +23,24 @@ function createAdminRouter({ banSocketsCallback } = {}) {
         if (!admin) {
             return res.status(401).json({ error: 'Hibás felhasználónév vagy jelszó.' });
         }
-        req.session.admin = admin;
-        res.json({ ok: true, admin });
+
+        // Session ID regenerálása bejelentkezéskor — így egy támadó által bejelentkezés
+        // ELŐTT megszerzett/befecskendezett session ID nem válik hitelesített sessionné
+        // (session fixation elleni védelem).
+        req.session.regenerate((err) => {
+            if (err) {
+                console.error('Session regenerálási hiba:', err);
+                return res.status(500).json({ error: 'Belső hiba történt.' });
+            }
+            req.session.admin = admin;
+            req.session.save((saveErr) => {
+                if (saveErr) {
+                    console.error('Session mentési hiba:', saveErr);
+                    return res.status(500).json({ error: 'Belső hiba történt.' });
+                }
+                res.json({ ok: true, admin });
+            });
+        });
     });
 
     router.post('/api/logout', (req, res) => {
