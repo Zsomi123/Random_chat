@@ -77,6 +77,23 @@ CREATE INDEX IF NOT EXISTS idx_bans_ip ON bans(ip);
 `);
 
 // ─────────────────────────────────────────────
+// MIGRÁCIÓK — meglévő adatbázisokhoz utólag hozzáadott oszlopok
+// ─────────────────────────────────────────────
+function addColumnIfMissing(table, columnDef) {
+    try {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${columnDef}`);
+    } catch (e) {
+        // A oszlop feltehetően már létezik — biztonságos figyelmen kívül hagyni
+        if (!/duplicate column name/i.test(e.message)) throw e;
+    }
+}
+// lifted_at: mikor oldotta fel manuálisan az admin a tiltást (a lejárattól eltérően)
+addColumnIfMissing('bans', `lifted_at TEXT`);
+// kind: 'manual' (admin hozta létre) vagy 'reporter_auto' (a rendszer hozta létre
+// alaptalan jelentések halmozódása miatt) — az eszkalációs logika ez alapján számol
+addColumnIfMissing('bans', `kind TEXT NOT NULL DEFAULT 'manual'`);
+
+// ─────────────────────────────────────────────
 // ADMIN SEED — ha még nincs admin user, létrehozzuk env-ből vagy default-ból
 // ─────────────────────────────────────────────
 function ensureDefaultAdmin() {
@@ -153,7 +170,9 @@ function getReportById(id) {
     const report = db.prepare(`SELECT * FROM reports WHERE id = ?`).get(id);
     if (!report) return null;
     const messages = db.prepare(`SELECT * FROM report_messages WHERE report_id = ? ORDER BY ts ASC`).all(id);
-    return { ...report, messages };
+    const reportedHistory = getReportedUserHistory(report.reported_username, report.reported_ip, id);
+    const reporterStatus = getReporterEscalationStatus(report.reporter_username, report.reporter_ip);
+    return { ...report, messages, reportedHistory, reporterStatus };
 }
 
 function updateReportStatus(id, { status, resolvedBy, note }) {
@@ -192,19 +211,118 @@ function topReportedUsers(limit = 10) {
     `).all(limit);
 }
 
+// Egy adott jelentett felhasználó/IP korábbi jelentési előzménye (a jelenlegi kivételével)
+function getReportedUserHistory(username, ip, excludeId) {
+    const conditions = [];
+    const params = [excludeId];
+    if (username) { conditions.push('reported_username = ?'); params.push(username); }
+    if (ip) { conditions.push('reported_ip = ?'); params.push(ip); }
+    if (!conditions.length) return [];
+    const sql = `
+        SELECT id, created_at, status, reason, resolution_note
+        FROM reports
+        WHERE id != ? AND (${conditions.join(' OR ')})
+        ORDER BY created_at DESC
+    `;
+    return db.prepare(sql).all(...params);
+}
+
+// Hány alaptalannak (dismissed) minősített jelentést adott le eddig ez a jelentő.
+// A sinceReportId paraméterrel csak a megadott jelentés-ID utáni (annál nagyobb ID-jű)
+// jelentések számítanak — ez teszi lehetővé, hogy egy korábbi automatikus tiltás
+// lejárta/feloldása után "nulláról" induljon újra a számlálás. Jelentés-ID alapú
+// határt használunk (nem időbélyeget), mert az egyértelmű és sorrendhelyes, még akkor
+// is, ha több művelet ugyanabban a másodpercben (vagy ezredmásodpercben) történik.
+function countDismissedReportsByReporter(reporterUsername, reporterIp, sinceReportId) {
+    const conditions = [];
+    const params = [];
+    if (reporterUsername) { conditions.push('reporter_username = ?'); params.push(reporterUsername); }
+    if (reporterIp) { conditions.push('reporter_ip = ?'); params.push(reporterIp); }
+    if (!conditions.length) return 0;
+    let sql = `SELECT COUNT(*) AS c FROM reports WHERE status = 'dismissed' AND (${conditions.join(' OR ')})`;
+    if (sinceReportId) { sql += ` AND id > ?`; params.push(sinceReportId); }
+    return db.prepare(sql).get(...params).c;
+}
+
+// ─────────────────────────────────────────────
+// JELENTŐ ESZKALÁCIÓS LOGIKA
+// ─────────────────────────────────────────────
+// Fokozatok: minél többször tiltottuk már ki ugyanezt a jelentőt alaptalan
+// jelentések miatt, annál hamarabb (kevesebb alaptalan jelentés után) és
+// annál hosszabb időre tiltjuk ki legközelebb.
+//   0. fokozat (még sosem volt automatikus tiltása): 5 alaptalan jelentés → 3 nap
+//   1. fokozat (1x már lejárt/feloldott auto-tiltása van): 3 alaptalan jelentés → 1 hét
+//   2.+ fokozat (2x vagy több lejárt/feloldott auto-tiltása van): 1 alaptalan jelentés → végleges
+const REPORTER_ESCALATION_TIERS = [
+    { threshold: 5, hours: 72, label: '3 nap', reason: 'Túl sok alaptalan jelentés' },
+    { threshold: 3, hours: 168, label: '1 hét', reason: 'Ismételt alaptalan jelentések (visszaeső jelentő)' },
+    { threshold: 1, hours: null, label: 'végleges', reason: 'Ismétlődően alaptalan jelentések — végleges tiltás' },
+];
+
+function isBanEffectivelyEnded(ban) {
+    if (!ban.active) return true;
+    if (ban.expires_at && new Date(ban.expires_at + 'Z') <= new Date()) return true;
+    return false;
+}
+
+// Az ez idáig a jelentő ellen (username vagy ip alapján) létrehozott automatikus
+// (alaptalan jelentés miatti) tiltások, létrehozás szerint növekvő sorrendben.
+function getReporterAutoBans(username, ip) {
+    const conditions = [];
+    const params = [];
+    if (username) { conditions.push('username = ?'); params.push(username); }
+    if (ip) { conditions.push('ip = ?'); params.push(ip); }
+    if (!conditions.length) return [];
+    const sql = `SELECT * FROM bans WHERE kind = 'reporter_auto' AND (${conditions.join(' OR ')}) ORDER BY id ASC`;
+    return db.prepare(sql).all(...params);
+}
+
+// Kiszámolja, hogy egy adott jelentő jelenleg hol tart az eszkalációs rendszerben:
+// hányszor volt már (lejárt/feloldott) automatikus tiltása, ebben a szakaszban hány
+// alaptalan jelentést adott le eddig, és mennyi kell a következő automatikus tiltáshoz.
+function getReporterEscalationStatus(username, ip) {
+    const autoBans = getReporterAutoBans(username, ip);
+    const ended = autoBans.filter(isBanEffectivelyEnded);
+    const hasActiveAutoBan = autoBans.some(b => !isBanEffectivelyEnded(b));
+    const strikeLevel = ended.length;
+
+    const tier = REPORTER_ESCALATION_TIERS[Math.min(strikeLevel, REPORTER_ESCALATION_TIERS.length - 1)];
+
+    // A legutóbbi lezárt automatikus tiltást kiváltó jelentés ID-ja a határ — az ezt
+    // követő (nagyobb ID-jű) alaptalan jelentések számítanak az új szakaszba.
+    const sinceReportId = ended.length ? (ended[ended.length - 1].source_report_id || 0) : 0;
+    const countInPeriod = countDismissedReportsByReporter(username, ip, sinceReportId);
+
+    return {
+        strikeLevel,
+        hasActiveAutoBan,
+        threshold: tier.threshold,
+        nextDurationHours: tier.hours,
+        nextDurationLabel: tier.label,
+        nextReason: tier.reason,
+        countInPeriod,
+    };
+}
+
 // ─────────────────────────────────────────────
 // TILTÁSOK
 // ─────────────────────────────────────────────
-function createBan({ ip, username, reason, bannedBy, expiresAt, sourceReportId }) {
+function createBan({ ip, username, reason, bannedBy, expiresAt, sourceReportId, kind }) {
     const result = db.prepare(`
-        INSERT INTO bans (ip, username, reason, banned_by, expires_at, source_report_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `).run(ip || null, username || null, reason || null, bannedBy || null, expiresAt || null, sourceReportId || null);
+        INSERT INTO bans (ip, username, reason, banned_by, expires_at, source_report_id, kind)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(ip || null, username || null, reason || null, bannedBy || null, expiresAt || null, sourceReportId || null, kind || 'manual');
     return result.lastInsertRowid;
 }
 
 function liftBan(id) {
-    db.prepare(`UPDATE bans SET active = 0 WHERE id = ?`).run(id);
+    db.prepare(`UPDATE bans SET active = 0, lifted_at = datetime('now') WHERE id = ?`).run(id);
+}
+
+// Meglévő tiltás indoklásának és lejáratának szerkesztése.
+// expiresAt: 'YYYY-MM-DD HH:MM:SS' string vagy null (= végleges).
+function updateBan(id, { reason, expiresAt }) {
+    db.prepare(`UPDATE bans SET reason = ?, expires_at = ? WHERE id = ?`).run(reason, expiresAt || null, id);
 }
 
 function listBans({ activeOnly = false } = {}) {
@@ -267,9 +385,13 @@ module.exports = {
     reportsPerDay,
     topReportedUsers,
     createBan,
+    updateBan,
     liftBan,
     listBans,
     isBanned,
+    getReportedUserHistory,
+    countDismissedReportsByReporter,
+    getReporterEscalationStatus,
     deactivateExpiredBans,
     logModerationEvent,
     moderationEventStats,

@@ -267,21 +267,78 @@
         padding-top: 10px;
         border-top: 1px dashed var(--border);
     }
+    .reporter-warning {
+        background: rgba(255,165,0,0.1);
+        border: 1px solid rgba(255,165,0,0.3);
+        color: var(--orange);
+        font-size: 12.5px;
+        border-radius: var(--radius-sm);
+        padding: 8px 12px;
+        margin-bottom: 12px;
+    }
+    .reporter-warning b { color: var(--orange); }
+    .reporter-warning.urgent {
+        background: rgba(255,75,110,0.1);
+        border-color: rgba(255,75,110,0.35);
+        color: var(--red);
+    }
+    .reporter-warning.urgent b { color: var(--red); }
+    .history-box {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--border);
+    }
+    .history-box.empty-hint {
+        color: var(--text-dim);
+        font-size: 12.5px;
+        font-style: italic;
+        border-top: 1px dashed var(--border);
+    }
+    .history-title {
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    .history-list { display: flex; flex-direction: column; gap: 6px; }
+    .history-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12.5px;
+        color: var(--text-muted);
+    }
+    .history-row .history-date { color: var(--text-dim); white-space: nowrap; }
+    .history-row .history-reason { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* ─── BANS TAB ─── */
-    .ban-form {
-        background: var(--surface);
+    .ip-search-input {
+        background: var(--surface2);
         border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 16px 18px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        margin-bottom: 18px;
+        border-radius: var(--radius-sm);
+        padding: 9px 13px;
+        color: var(--text);
+        font-size: 13px;
+        outline: none;
+        min-width: 260px;
+        transition: border-color 0.2s;
     }
-    .ban-form .field { margin: 0; min-width: 140px; flex: 1; }
-    .ban-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ip-search-input:focus { border-color: var(--border-bright); }
+    .auto-badge {
+        display: inline-block;
+        background: var(--cyan-dim);
+        color: var(--cyan);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 6px;
+        letter-spacing: 0.03em;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
+    .ban-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
     .ban-table th {
         text-align: left;
         color: var(--text-muted);
@@ -298,6 +355,7 @@
     }
     .ban-table tr:last-child td { border-bottom: none; }
     .ban-table .inactive { color: var(--text-dim); text-decoration: line-through; }
+    .ban-row-actions { display: flex; gap: 12px; white-space: nowrap; }
 
     .empty-state {
         text-align: center;
@@ -525,30 +583,24 @@
 
             <!-- BANS -->
             <div class="panel" id="panel-bans">
-                <div class="ban-form">
-                    <div class="field">
-                        <label>Felhasználónév</label>
-                        <input type="text" id="banUsername" placeholder="pl. Anonymus123">
-                    </div>
-                    <div class="field">
-                        <label>IP cím</label>
-                        <input type="text" id="banIp" placeholder="pl. 1.2.3.4">
-                    </div>
-                    <div class="field">
-                        <label>Indok *</label>
-                        <input type="text" id="banReason" placeholder="Kötelező — pl. spam, zaklatás">
-                    </div>
-                    <div class="field" style="max-width:140px;">
-                        <label>Lejárat (óra)</label>
-                        <input type="number" id="banDuration" placeholder="üres = végleges">
-                    </div>
-                    <button class="btn btn-danger" onclick="createManualBan()">Tiltás létrehozása</button>
+                <div class="filter-row">
+                    <input type="text" id="bansIpSearch" class="ip-search-input" placeholder="Keresés IP alapján…" oninput="filterBansBySearch()">
                 </div>
+
+                <div class="section-title">Aktív tiltások</div>
                 <table class="ban-table">
                     <thead>
                         <tr><th>Felhasználónév</th><th>IP</th><th>Indok</th><th>Létrehozva</th><th>Lejárat</th><th>Állapot</th><th></th></tr>
                     </thead>
-                    <tbody id="bansTableBody"></tbody>
+                    <tbody id="activeBansBody"></tbody>
+                </table>
+
+                <div class="section-title">Inaktív / lejárt tiltások</div>
+                <table class="ban-table">
+                    <thead>
+                        <tr><th>Felhasználónév</th><th>IP</th><th>Indok</th><th>Létrehozva</th><th>Lejárat</th><th>Állapot</th><th></th></tr>
+                    </thead>
+                    <tbody id="inactiveBansBody"></tbody>
                 </table>
             </div>
         </main>
@@ -559,7 +611,7 @@
     <!-- TILTÁS MODAL -->
     <div class="modal-overlay" id="banModal">
         <div class="modal-box">
-            <div class="modal-title">⛔ Felhasználó kitiltása</div>
+            <div class="modal-title" id="banModalTitle">⛔ Felhasználó kitiltása</div>
             <div class="modal-sub" id="banModalSub"></div>
 
             <div class="ban-target-row">
@@ -601,6 +653,40 @@
             <div class="modal-actions">
                 <button class="btn btn-ghost" onclick="closeBanModal()">Mégse</button>
                 <button class="btn btn-danger" id="banConfirmBtn" onclick="confirmBan()">Kitiltás megerősítése</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TILTÁS SZERKESZTÉSE MODAL -->
+    <div class="modal-overlay" id="editBanModal">
+        <div class="modal-box">
+            <div class="modal-title">✎ Tiltás szerkesztése</div>
+            <div class="modal-sub" id="editBanModalSub"></div>
+
+            <div class="field" style="margin-bottom:10px;">
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">Új időtartam (mostantól számítva)</label>
+                <div class="duration-grid">
+                    <div class="duration-chip" data-hours="1" onclick="selectEditBanDuration(this, 1)">1 óra</div>
+                    <div class="duration-chip" data-hours="24" onclick="selectEditBanDuration(this, 24)">24 óra</div>
+                    <div class="duration-chip" data-hours="168" onclick="selectEditBanDuration(this, 168)">7 nap</div>
+                    <div class="duration-chip" data-hours="720" onclick="selectEditBanDuration(this, 720)">30 nap</div>
+                    <div class="duration-chip" data-hours="custom" onclick="selectEditBanDuration(this, 'custom')">Egyéni</div>
+                    <div class="duration-chip danger-chip" data-hours="permanent" onclick="selectEditBanDuration(this, 'permanent')">Végleges</div>
+                </div>
+                <div class="custom-hours-row" id="editCustomHoursRow">
+                    <input type="number" id="editCustomHoursInput" placeholder="óra" min="1">
+                    <span style="color:var(--text-muted); font-size:12.5px;">óra</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">Indoklás</label>
+                <textarea id="editBanReasonText" placeholder="Tiltás indoklása"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeEditBanModal()">Mégse</button>
+                <button class="btn btn-danger" id="editBanConfirmBtn" onclick="confirmEditBan()">Mentés</button>
             </div>
         </div>
     </div>
@@ -793,50 +879,88 @@ function reportDetailHtml(r) {
 
     const actions = r.status === 'pending' ? `
         <div class="action-row">
-            <button class="btn btn-danger btn-sm" data-report-id="${r.id}" data-username="${escapeHtml(r.reported_username || '')}" data-ip="${escapeHtml(r.reported_ip || '')}" onclick="openBanModalFromBtn(this)">⛔ Felhasználó kitiltása</button>
-            <button class="btn btn-outline-green btn-sm" onclick="resolveReport(${r.id})">✓ Megoldva (tiltás nélkül)</button>
-            <button class="btn btn-ghost btn-sm" onclick="dismissReport(${r.id})">Elutasítás (alaptalan)</button>
+            <button class="btn btn-danger btn-sm" data-report-id="${r.id}" data-username="${escapeHtml(r.reported_username || '')}" data-ip="${escapeHtml(r.reported_ip || '')}" data-target="reported" onclick="openBanModalFromBtn(this)">⛔ Jelentett kitiltása</button>
+            <button class="btn btn-outline-danger btn-sm" data-report-id="${r.id}" data-username="${escapeHtml(r.reporter_username || '')}" data-ip="${escapeHtml(r.reporter_ip || '')}" data-target="reporter" onclick="openBanModalFromBtn(this)">⛔ Jelentő kitiltása</button>
+            <button class="btn btn-ghost btn-sm" onclick="dismissReport(${r.id})">🚫 Alaptalan jelentés</button>
         </div>
     ` : '';
 
+    const history = (r.reportedHistory || []);
+    const historyHtml = history.length ? `
+        <div class="history-box">
+            <div class="history-title">A jelentett felhasználó korábbi jelentései (${history.length})</div>
+            <div class="history-list">
+                ${history.map(h => `
+                    <div class="history-row">
+                        <span class="status-pill ${h.status}">${statusLabel(h.status)}</span>
+                        <span class="history-date">${new Date(h.created_at + 'Z').toLocaleDateString('hu-HU')}</span>
+                        <span class="history-reason">${escapeHtml(h.reason || 'nincs indoklás megadva')}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    ` : `<div class="history-box empty-hint">Ezt a felhasználót korábban még nem jelentették.</div>`;
+
     return `
         <div class="reason-box"><b>Jelentő indoklása:</b> ${escapeHtml(r.reason || 'nincs megadva')}<br>Szoba: ${escapeHtml(r.room_name || '—')} · Jelentett IP: <code>${escapeHtml(r.reported_ip || 'n/a')}</code></div>
+        ${reporterStatusHtml(r.reporterStatus)}
         <div class="chat-log">${chatLines}</div>
         ${actions}
         ${noteHtml}
+        ${historyHtml}
     `;
 }
 
-async function resolveReport(id) {
-    try {
-        await api(`/api/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({}) });
-        showToast('Jelentés megoldva.');
-        invalidateAndReload(id);
-    } catch (e) { showToast(e.message); }
+// A jelentő eszkalációs státuszának megjelenítése: hányszor volt már automatikusan
+// kitiltva alaptalan jelentések miatt, hol tart a jelenlegi szakaszban, és mikor
+// jön a következő (egyre szigorúbb) automatikus tiltás.
+function reporterStatusHtml(rs) {
+    if (!rs) return '';
+    if (rs.hasActiveAutoBan) {
+        return `<div class="reporter-warning urgent">⚠ Ez a jelentő jelenleg <b>automatikus tiltás</b> alatt áll alaptalan jelentések miatt.</div>`;
+    }
+    if (rs.strikeLevel === 0 && rs.countInPeriod === 0) return '';
+
+    const parts = [];
+    if (rs.strikeLevel > 0) {
+        parts.push(`Korábban <b>${rs.strikeLevel}</b> alkalommal automatikusan kitiltva alaptalan jelentések miatt.`);
+    }
+    parts.push(`Alaptalan jelentések ebben a szakaszban: <b>${rs.countInPeriod}/${rs.threshold}</b>. Következő automatikus tiltás mértéke: <b>${rs.nextDurationLabel}</b>.`);
+
+    const urgent = rs.countInPeriod >= Math.max(rs.threshold - 1, 1);
+    return `<div class="reporter-warning${urgent ? ' urgent' : ''}">⚠ ${parts.join(' ')}</div>`;
 }
 
 async function dismissReport(id) {
     try {
-        await api(`/api/reports/${id}/dismiss`, { method: 'POST', body: JSON.stringify({}) });
-        showToast('Jelentés elutasítva.');
+        const res = await api(`/api/reports/${id}/dismiss`, { method: 'POST', body: JSON.stringify({}) });
+        if (res.autoBanned) {
+            showToast(`Jelentés elutasítva. A jelentő automatikusan kitiltva (${res.autoBanInfo.durationLabel}) — túl sok alaptalan jelentés.`);
+            loadBans();
+        } else {
+            showToast('Jelentés elutasítva.');
+        }
         invalidateAndReload(id);
     } catch (e) { showToast(e.message); }
 }
 
 // ─── TILTÁS MODAL (jelentésből) ──────────────
-let banModalState = { reportId: null, hours: 24, username: null, ip: null };
+let banModalState = { reportId: null, hours: 24, username: null, ip: null, target: 'reported' };
 
 function openBanModalFromBtn(btn) {
     const reportId = parseInt(btn.dataset.reportId, 10);
     const username = btn.dataset.username || null;
     const ip = btn.dataset.ip || null;
-    openBanModal(reportId, username, ip);
+    const target = btn.dataset.target || 'reported';
+    openBanModal(reportId, username, ip, target);
 }
 
-function openBanModal(reportId, username, ip) {
-    banModalState = { reportId, hours: 24, username, ip };
+function openBanModal(reportId, username, ip, target = 'reported') {
+    banModalState = { reportId, hours: 24, username, ip, target };
 
-    document.getElementById('banModalSub').innerHTML = `Kitiltás <b>${escapeHtml(username || 'n/a')}</b> felhasználó ellen, a #${reportId} jelentés alapján.`;
+    const targetLabel = target === 'reporter' ? 'Jelentő' : 'Jelentett felhasználó';
+    document.getElementById('banModalTitle').textContent = target === 'reporter' ? '⛔ Jelentő kitiltása' : '⛔ Felhasználó kitiltása';
+    document.getElementById('banModalSub').innerHTML = `${targetLabel} kitiltása: <b>${escapeHtml(username || 'n/a')}</b>, a #${reportId} jelentés alapján.`;
 
     document.getElementById('banTargetUsername').checked = !!username;
     document.getElementById('banTargetUsername').disabled = !username;
@@ -871,7 +995,7 @@ function selectBanDuration(el, value) {
 }
 
 async function confirmBan() {
-    const { reportId, hours } = banModalState;
+    const { reportId, hours, target } = banModalState;
     const banUsername = document.getElementById('banTargetUsername').checked;
     const banIp = document.getElementById('banTargetIp').checked;
     const reason = document.getElementById('banReasonText').value.trim();
@@ -901,9 +1025,9 @@ async function confirmBan() {
     try {
         await api(`/api/reports/${reportId}/ban`, {
             method: 'POST',
-            body: JSON.stringify({ durationHours, reason, banIp, banUsername }),
+            body: JSON.stringify({ durationHours, reason, banIp, banUsername, target }),
         });
-        showToast('Felhasználó kitiltva, jelentés megoldva.');
+        showToast(target === 'reporter' ? 'Jelentő kitiltva.' : 'Felhasználó kitiltva, jelentés megoldva.');
         closeBanModal();
         invalidateAndReload(reportId);
         loadBans();
@@ -923,12 +1047,42 @@ function invalidateAndReload(id) {
 }
 
 // ─── BANS ────────────────────────────────────
+let bansCache = [];
+let bansSearchQuery = '';
+
 async function loadBans() {
     try {
         const { bans } = await api('/api/bans');
-        const tbody = document.getElementById('bansTableBody');
-        tbody.innerHTML = bans.length ? bans.map(banRowHtml).join('') : `<tr><td colspan="7" class="empty-state">Nincs még tiltás.</td></tr>`;
+        bansCache = bans;
+        renderBans();
     } catch (e) {}
+}
+
+function filterBansBySearch() {
+    bansSearchQuery = document.getElementById('bansIpSearch').value.trim().toLowerCase();
+    renderBans();
+}
+
+function renderBans() {
+    let bans = bansCache;
+    if (bansSearchQuery) {
+        bans = bans.filter(b => (b.ip || '').toLowerCase().includes(bansSearchQuery));
+    }
+
+    const active = [];
+    const inactive = [];
+    for (const b of bans) {
+        const expired = b.expires_at && new Date(b.expires_at + 'Z') < new Date();
+        const isActive = b.active && !expired;
+        (isActive ? active : inactive).push(b);
+    }
+
+    document.getElementById('activeBansBody').innerHTML = active.length
+        ? active.map(banRowHtml).join('')
+        : `<tr><td colspan="7" class="empty-state">${bansSearchQuery ? 'Nincs találat.' : 'Nincs aktív tiltás.'}</td></tr>`;
+    document.getElementById('inactiveBansBody').innerHTML = inactive.length
+        ? inactive.map(banRowHtml).join('')
+        : `<tr><td colspan="7" class="empty-state">${bansSearchQuery ? 'Nincs találat.' : 'Nincs inaktív tiltás.'}</td></tr>`;
 }
 
 function banRowHtml(b) {
@@ -936,37 +1090,21 @@ function banRowHtml(b) {
     const isActive = b.active && !expired;
     const cls = isActive ? '' : 'inactive';
     const sourceTag = b.source_report_id ? ` <span class="muted-link" style="text-decoration:none; color:var(--text-dim);">(#${b.source_report_id} jelentésből)</span>` : '';
+    const autoTag = b.kind === 'reporter_auto' ? ` <span class="auto-badge">AUTOMATIKUS</span>` : '';
     return `
         <tr>
             <td class="${cls}">${escapeHtml(b.username || '—')}</td>
             <td class="${cls}">${escapeHtml(b.ip || '—')}</td>
-            <td class="${cls}">${escapeHtml(b.reason || '—')}${sourceTag}<br><small style="color:var(--text-dim);">${escapeHtml(b.banned_by || '')}</small></td>
+            <td class="${cls}">${escapeHtml(b.reason || '—')}${autoTag}${sourceTag}<br><small style="color:var(--text-dim);">${escapeHtml(b.banned_by || '')}</small></td>
             <td class="${cls}">${new Date(b.created_at + 'Z').toLocaleDateString('hu-HU')}</td>
             <td class="${cls}">${b.expires_at ? new Date(b.expires_at + 'Z').toLocaleString('hu-HU') : 'végleges'}</td>
             <td>${isActive ? '<span class="status-pill pending">Aktív</span>' : '<span class="status-pill dismissed">Inaktív</span>'}</td>
-            <td>${isActive ? `<span class="muted-link" onclick="liftBan(${b.id})">feloldás</span>` : ''}</td>
+            <td class="ban-row-actions">
+                <span class="muted-link" onclick='openEditBanModal(${JSON.stringify({ id: b.id, username: b.username, ip: b.ip, reason: b.reason, expires_at: b.expires_at }).replace(/'/g, "&#39;")})'>szerkesztés</span>
+                ${isActive ? `<span class="muted-link" onclick="liftBan(${b.id})">feloldás</span>` : ''}
+            </td>
         </tr>
     `;
-}
-
-async function createManualBan() {
-    const username = document.getElementById('banUsername').value.trim();
-    const ip = document.getElementById('banIp').value.trim();
-    const reason = document.getElementById('banReason').value.trim();
-    const durationHours = document.getElementById('banDuration').value ? parseInt(document.getElementById('banDuration').value, 10) : null;
-
-    if (!username && !ip) { showToast('Adj meg legalább egy felhasználónevet vagy IP-t.'); return; }
-    if (!reason) { showToast('Az indoklás megadása kötelező.'); return; }
-
-    try {
-        await api('/api/bans', { method: 'POST', body: JSON.stringify({ username: username || null, ip: ip || null, reason, durationHours }) });
-        showToast('Tiltás létrehozva.');
-        document.getElementById('banUsername').value = '';
-        document.getElementById('banIp').value = '';
-        document.getElementById('banReason').value = '';
-        document.getElementById('banDuration').value = '';
-        loadBans();
-    } catch (e) { showToast(e.message); }
 }
 
 async function liftBan(id) {
@@ -975,6 +1113,84 @@ async function liftBan(id) {
         showToast('Tiltás feloldva.');
         loadBans();
     } catch (e) { showToast(e.message); }
+}
+
+// ─── TILTÁS SZERKESZTÉSE ─────────────────────
+let editBanState = { id: null, hours: 24 };
+
+function openEditBanModal(ban) {
+    editBanState = { id: ban.id, hours: 24 };
+
+    const target = ban.username ? ban.username : (ban.ip || 'n/a');
+    document.getElementById('editBanModalSub').innerHTML = `<b>${escapeHtml(target)}</b> tiltásának módosítása.`;
+    document.getElementById('editBanReasonText').value = ban.reason || '';
+
+    document.getElementById('editCustomHoursInput').value = '';
+    document.getElementById('editCustomHoursRow').classList.remove('show');
+
+    document.querySelectorAll('#editBanModal .duration-chip').forEach(c => c.classList.remove('active'));
+    // Ha jelenleg végleges a tiltás, azt jelöljük alapból aktívnak, egyébként a 24 órást
+    const isPermanent = !ban.expires_at;
+    const defaultChip = isPermanent
+        ? document.querySelector('#editBanModal .duration-chip[data-hours="permanent"]')
+        : document.querySelector('#editBanModal .duration-chip[data-hours="24"]');
+    defaultChip.classList.add('active');
+    editBanState.hours = isPermanent ? 'permanent' : 24;
+
+    document.getElementById('editBanModal').classList.add('open');
+}
+
+function closeEditBanModal() {
+    document.getElementById('editBanModal').classList.remove('open');
+}
+
+function selectEditBanDuration(el, value) {
+    document.querySelectorAll('#editBanModal .duration-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    editBanState.hours = value;
+    document.getElementById('editCustomHoursRow').classList.toggle('show', value === 'custom');
+    if (value === 'custom') document.getElementById('editCustomHoursInput').focus();
+}
+
+async function confirmEditBan() {
+    const { id, hours } = editBanState;
+    const reason = document.getElementById('editBanReasonText').value.trim();
+
+    if (!reason) {
+        showToast('Az indoklás megadása kötelező.');
+        return;
+    }
+
+    let durationHours = null;
+    let permanent = false;
+    if (hours === 'permanent') {
+        permanent = true;
+    } else if (hours === 'custom') {
+        const v = parseInt(document.getElementById('editCustomHoursInput').value, 10);
+        if (!v || v <= 0) { showToast('Adj meg érvényes óraszámot.'); return; }
+        durationHours = v;
+    } else {
+        durationHours = hours;
+    }
+
+    const btn = document.getElementById('editBanConfirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Mentés…';
+
+    try {
+        await api(`/api/bans/${id}/edit`, {
+            method: 'POST',
+            body: JSON.stringify({ reason, durationHours, permanent }),
+        });
+        showToast('Tiltás frissítve.');
+        closeEditBanModal();
+        loadBans();
+    } catch (e) {
+        showToast(e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Mentés';
+    }
 }
 
 function escapeHtml(str) {
