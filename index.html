@@ -746,6 +746,53 @@
         }
         .modal-btn.danger:hover { background: #ff2e57; }
 
+        /* ─── SZABÁLYOK / TUDNIVALÓK MODAL ─── */
+        .rules-modal-box {
+            width: min(480px, 90vw);
+            max-height: 82vh;
+            overflow-y: auto;
+        }
+        .rules-section { margin-bottom: 16px; }
+        .rules-section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+        .rules-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .rules-list li {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            padding-left: 14px;
+            position: relative;
+        }
+        .rules-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 7px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--cyan);
+        }
+        .rules-reopen-link {
+            font-size: 12px;
+            color: var(--text-dim);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            margin-top: 4px;
+        }
+        .rules-reopen-link:hover { color: var(--text-muted); }
+
         /* ─── KITILTVA OVERLAY ─── */
         .banned-overlay {
             position: fixed;
@@ -1133,6 +1180,8 @@
                 </button>
             </div>
 
+            <div class="rules-reopen-link" onclick="szabalyokMegnyit()">Szabályok és tudnivalók</div>
+
         </div>
     </div>
 
@@ -1220,9 +1269,6 @@
             <!-- ÚJ: Checkbox lista az indokoknak -->
             <div class="report-reasons" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
-                    <input type="checkbox" class="report-reason-cb" value="Spam / Hirdetés" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Spam / Hirdetés
-                </label>
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
                     <input type="checkbox" class="report-reason-cb" value="Sértő megjegyzések" style="accent-color: var(--cyan); width: 16px; height: 16px;">Sértő megjegyzések
                 </label>
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
@@ -1256,6 +1302,57 @@
             <div class="banned-detail" id="bannedExpiryRow" style="display:none;">
                 <span class="banned-detail-label">Időtartam</span>
                 <span class="banned-detail-value" id="bannedExpiryVal"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ELSŐ LÁTOGATÁSKOR MEGJELENŐ SZABÁLYOK / TUDNIVALÓK MODAL -->
+    <div class="modal-overlay" id="rulesModal">
+        <div class="modal-box rules-modal-box">
+            <div class="modal-title">👋 Mielőtt elkezded</div>
+            <div class="modal-text" style="margin-bottom: 14px;">
+                A RandoChaten ismeretlen emberekkel beszélgetsz témák alapján. Pár fontos dolog, mielőtt csatlakozol:
+            </div>
+
+            <div class="rules-section">
+                <div class="rules-section-title">✅ Mi megengedett, mi nem</div>
+                <ul class="rules-list">
+                    <li>Legyél tisztelettudó — normális, baráti hangnem az elvárás.</li>
+                    <li>Tilos a zaklatás, a gyűlöletbeszéd és a sértegetés.</li>
+                    <li>Tilos bármilyen szexuális tartalom, és különösen tilos kiskorúakat érintő bármilyen szexuális célú tartalom vagy közeledés.</li>
+                    <li>Tilos a spam, a reklám/hirdetés és linkek küldése.</li>
+                    <li>Ne kérj és ne oszd meg személyes adataidat (telefonszám, cím, jelszó stb.).</li>
+                </ul>
+            </div>
+
+            <div class="rules-section">
+                <div class="rules-section-title">⛔ Miért és mennyi időre kaphatsz tiltást</div>
+                <ul class="rules-list">
+                    <li>Szabálysértés esetén a moderátorok ideiglenesen (néhány órától több hétig) vagy súlyosabb/ismétlődő esetben véglegesen kitilthatnak.</li>
+                    <li>A Jelentés gombbal te is jelezheted, ha valaki megsérti a szabályokat — ezt komolyan vesszük.</li>
+                    <li>A jelentés funkcióval viszont ne élj vissza: aki sorozatosan alaptalanul jelentget másokat, azt a rendszer automatikusan kitiltja — először 3 napra, ismétlődés esetén 1 hétre, majd véglegesen.</li>
+                </ul>
+            </div>
+
+            <div class="rules-section">
+                <div class="rules-section-title">👤 Kiknek ajánljuk</div>
+                <ul class="rules-list">
+                    <li>A RandoChat elsősorban 16 éven felülieknek ajánlott, mivel ismeretlen partnerekkel, moderálatlan pillanatokban is beszélgetsz.</li>
+                    <li>A "Lelki segély" téma nem helyettesíti a szakszerű segítséget — krízishelyzetben kérjük, fordulj hivatalos segélyvonalhoz vagy szakemberhez.</li>
+                </ul>
+            </div>
+
+            <div class="rules-section">
+                <div class="rules-section-title">🤖 A beszélgetést AI figyeli</div>
+                <ul class="rules-list">
+                    <li>Minden üzenetet automatikusan ellenőriz egy AI-alapú tartalomszűrő, mielőtt megérkezne a partneredhez.</li>
+                    <li>Ez kiszűri és blokkolja többek közt: a gyűlöletbeszédet, a zaklatást, a szexuális/felnőtt tartalmat, valamint az erőszakra vagy önbántalmazásra buzdító tartalmakat — a linkeket és a spam-szerű, túl gyors üzenetküldést pedig külön is blokkoljuk.</li>
+                    <li>Ez nem helyettesíti az emberi moderátort: gyanús vagy nem megfelelő viselkedés esetén használd bátran a Jelentés gombot.</li>
+                </ul>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 6px;">
+                <button class="modal-btn danger" onclick="szabalyokElfogad()">Rendben, értem</button>
             </div>
         </div>
     </div>
@@ -1845,7 +1942,26 @@
             setTimeout(() => t.classList.remove('show'), duration);
         }
 
+        // ─── SZABÁLYOK / TUDNIVALÓK MODAL ──────────────
+        const RULES_SEEN_KEY = 'randochat_rules_seen_v1';
+
+        function szabalyokMegnyit() {
+            document.getElementById('rulesModal').classList.add('open');
+        }
+
+        function szabalyokElfogad() {
+            try { localStorage.setItem(RULES_SEEN_KEY, '1'); } catch (e) { /* pl. inkognitó mód — nem kritikus */ }
+            document.getElementById('rulesModal').classList.remove('open');
+        }
+
+        function initRulesModal() {
+            let alreadySeen = false;
+            try { alreadySeen = localStorage.getItem(RULES_SEEN_KEY) === '1'; } catch (e) { alreadySeen = false; }
+            if (!alreadySeen) szabalyokMegnyit();
+        }
+
         updateCharCount();
+        initRulesModal();
     </script>
 </body>
 </html>
