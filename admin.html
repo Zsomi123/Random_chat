@@ -2,7 +2,8 @@
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0D0F14">
 <title>Moderációs Admin — RandoChat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -27,12 +28,17 @@
         --radius-lg: 18px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     body {
         background: var(--bg);
         color: var(--text);
         font-family: 'Inter', sans-serif;
         min-height: 100vh;
+        min-height: calc(var(--vh, 1vh) * 100);
+        min-height: 100dvh;
+        -webkit-tap-highlight-color: transparent;
     }
+    button, a, input { touch-action: manipulation; }
     h1, h2, h3, .brand { font-family: 'Space Grotesk', sans-serif; }
 
     /* ─── LOGIN ─── */
@@ -74,7 +80,8 @@
         border-radius: var(--radius-sm);
         padding: 10px 12px;
         color: var(--text);
-        font-size: 14px;
+        /* Min. 16px, hogy mobil böngésző ne zoomoljon rá fókuszáláskor */
+        font-size: 16px;
         outline: none;
         transition: border-color 0.2s;
     }
@@ -105,7 +112,7 @@
     }
 
     /* ─── LAYOUT ─── */
-    #appScreen { display: none; min-height: 100vh; }
+    #appScreen { display: none; min-height: 100vh; min-height: calc(var(--vh, 1vh) * 100); min-height: 100dvh; }
     .topbar {
         display: flex;
         align-items: center;
@@ -320,7 +327,7 @@
         border-radius: var(--radius-sm);
         padding: 9px 13px;
         color: var(--text);
-        font-size: 13px;
+        font-size: 16px;
         outline: none;
         min-width: 260px;
         transition: border-color 0.2s;
@@ -491,7 +498,7 @@
         border-radius: var(--radius-sm);
         padding: 8px 10px;
         color: var(--text);
-        font-size: 13px;
+        font-size: 16px;
         width: 100px;
         outline: none;
     }
@@ -692,6 +699,18 @@
     </div>
 
 <script>
+// Valós mobil magasság (--vh) — lásd index.html azonos megoldását
+function frissitsVh() {
+    const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    document.documentElement.style.setProperty('--vh', (h * 0.01) + 'px');
+}
+frissitsVh();
+window.addEventListener('resize', frissitsVh);
+window.addEventListener('orientationchange', frissitsVh);
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', frissitsVh);
+}
+
 const API = '/admin';
 let currentReportFilter = '';
 let reportsCache = [];

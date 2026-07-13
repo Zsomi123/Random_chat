@@ -343,8 +343,28 @@ io.on('connection', (socket) => {
         if (socket.currentRoom) socket.to(socket.currentRoom).emit('partner_typing_stop');
     });
 
-    socket.on('send_message', async (msg) => {
+    socket.on('send_message', async (payload) => {
         if (!socket.currentRoom) return;
+
+        // A payload lehet egyszerű string (régi kliens) vagy { text, replyTo } objektum
+        // (válasz-funkció). A replyTo adatait szigorúan validáljuk/vágjuk, mert
+        // kliens oldalról tetszőleges tartalmat lehetne beküldeni.
+        let msg;
+        let replyTo = null;
+        if (typeof payload === 'string') {
+            msg = payload;
+        } else if (payload && typeof payload === 'object') {
+            msg = payload.text;
+            if (payload.replyTo && typeof payload.replyTo === 'object') {
+                const r = payload.replyTo;
+                replyTo = {
+                    id: typeof r.id === 'string' ? r.id.slice(0, 100) : null,
+                    text: typeof r.text === 'string' ? r.text.slice(0, 300) : '',
+                    senderLabel: typeof r.senderLabel === 'string' ? r.senderLabel.slice(0, 60) : '',
+                };
+                if (!replyTo.id && !replyTo.text) replyTo = null;
+            }
+        }
 
         // Alapvető típus- és hosszellenőrzés — a kliens csak UI-kényelemből limitál,
         // szerver oldalon enélkül tetszőleges méretű payloadot lehetne küldeni.
@@ -406,26 +426,28 @@ io.on('connection', (socket) => {
                 });
             } else {
                 // Elmentjük a szoba rövid előzményébe (jelentésekhez)
-                pushRoomHistory(roomName, { id: messageId, senderId: socket.id, senderName: socket.username, text: msg, ts: now });
+                pushRoomHistory(roomName, { id: messageId, senderId: socket.id, senderName: socket.username, text: msg, replyTo, ts: now });
 
-                // Üzenet megy a partnernek a küldő nevével és egyedi ID-val együtt
+                // Üzenet megy a partnernek a küldő nevével, egyedi ID-val és (ha van) a válasz-referenciával együtt
                 socket.to(roomName).emit('receive_message', {
                     id: messageId,
                     text: msg,
-                    senderName: socket.username
+                    senderName: socket.username,
+                    replyTo
                 });
                 // A küldő is megkapja a saját üzenete ID-ját, hogy a reakciók odaköthetők legyenek
-                socket.emit('message_sent_ack', { id: messageId, text: msg });
+                socket.emit('message_sent_ack', { id: messageId, text: msg, replyTo });
             }
         } catch (error) {
             console.error('Moderáció hiba:', error);
-            pushRoomHistory(roomName, { id: messageId, senderId: socket.id, senderName: socket.username, text: msg, ts: now });
+            pushRoomHistory(roomName, { id: messageId, senderId: socket.id, senderName: socket.username, text: msg, replyTo, ts: now });
             socket.to(roomName).emit('receive_message', {
                 id: messageId,
                 text: msg,
-                senderName: socket.username
+                senderName: socket.username,
+                replyTo
             });
-            socket.emit('message_sent_ack', { id: messageId, text: msg });
+            socket.emit('message_sent_ack', { id: messageId, text: msg, replyTo });
         }
     });
 

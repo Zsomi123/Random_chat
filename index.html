@@ -2,7 +2,11 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0D0F14">
     <title>RandoChat</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
@@ -28,16 +32,35 @@
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+        button, a, input, .topic-btn, .gender-btn, .send-btn, .back-btn, .next-btn {
+            touch-action: manipulation;
+        }
+
+        html {
+            height: 100%;
+            /* Ne engedjük a böngészőnek automatikusan felskálázni a betűméretet
+               forgatáskor (iOS Safari "text size adjust" viselkedés) */
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
         body {
             background: var(--bg);
             color: var(--text);
             font-family: 'Inter', sans-serif;
-            min-height: 100vh;
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            overscroll-behavior: none;
+            /* Duplakoppintásos nagyítás és a natív "pull to zoom" gesztusok tiltása
+               érintőképernyős eszközökön */
+            touch-action: pan-y;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body::before {
@@ -189,7 +212,9 @@
             outline: none;
             color: var(--text);
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 15px;
+            /* Min. 16px szükséges, különben iOS Safari/Chrome automatikusan
+               ráközelít (zoom) a mezőre fókuszáláskor */
+            font-size: 16px;
             font-weight: 500;
             padding: 13px 0;
         }
@@ -338,8 +363,14 @@
         .chat-shell {
             width: 100vw;
             height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+            height: 100dvh;
             display: flex;
             flex-direction: column;
+            /* Bicskanyél / gesztussáv / böngésző UI alatti terület kihagyása */
+            padding-top: env(safe-area-inset-top);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
 
         .chat-header {
@@ -473,6 +504,9 @@
         .chat-body {
             flex: 1;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
             padding: 24px 20px;
             display: flex;
             flex-direction: column;
@@ -499,22 +533,16 @@
         .msg-row.other { align-self: flex-start; align-items: flex-start; }
         .msg-row.system { align-self: center; max-width: 90%; align-items: center; }
 
-        /* Sender name above bubble (for "other" messages) */
+        /* Sender name above bubble (both "other" and "me" — "Te:" saját üzenetnél) */
         .msg-sender {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 11px;
             font-weight: 500;
             color: var(--cyan);
             margin-bottom: 3px;
-            padding-left: 2px;
+            padding: 0 2px;
         }
-
-        .bubble-wrap {
-            display: flex;
-            align-items: flex-end;
-            gap: 6px;
-        }
-        .msg-row.me .bubble-wrap { flex-direction: row-reverse; }
+        .msg-row.me .msg-sender { color: var(--text-muted); }
 
         .bubble {
             padding: 10px 14px;
@@ -553,15 +581,33 @@
             color: #FF7B97;
         }
 
-        /* ─── ÜZENET REAKCIÓK ─── */
+        /* ─── ÜZENET REAKCIÓK + VÁLASZ ─── */
         .bubble-zone {
             position: relative;
             display: inline-block;
         }
 
-        .reaction-trigger {
+        /* Hover/tap toolbar a buborék ALJÁN — reakció hozzáadása + válasz gomb */
+        .msg-actions {
             position: absolute;
-            top: -14px;
+            bottom: -14px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+            z-index: 5;
+        }
+        .msg-row.me .msg-actions { left: -10px; }
+        .msg-row.other .msg-actions { right: -10px; }
+
+        .bubble-zone:hover .msg-actions,
+        .msg-actions.force-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .msg-action-btn {
             width: 22px;
             height: 22px;
             border-radius: 50%;
@@ -573,18 +619,9 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.15s, border-color 0.15s, color 0.15s;
-            z-index: 5;
+            transition: border-color 0.15s, color 0.15s;
         }
-        .msg-row.me .reaction-trigger { left: -10px; }
-        .msg-row.other .reaction-trigger { right: -10px; }
-
-        .bubble-zone:hover .reaction-trigger,
-        .reaction-trigger.force-visible {
-            opacity: 1;
-        }
-        .reaction-trigger:hover {
+        .msg-action-btn:hover {
             border-color: var(--border-bright);
             color: var(--cyan);
         }
@@ -628,14 +665,19 @@
             transform: scale(1.25);
         }
 
+        /* A kapott reakciók jobb felül, a buborék sarkára lógva jelennek meg */
         .msg-reactions {
+            position: absolute;
+            top: -10px;
+            right: -6px;
             display: flex;
             gap: 3px;
-            margin-top: 3px;
             flex-wrap: wrap;
+            z-index: 6;
+            max-width: 160px;
+            justify-content: flex-end;
         }
-        .msg-row.me .msg-reactions { justify-content: flex-end; }
-        .msg-row.other .msg-reactions { justify-content: flex-start; }
+        .msg-reactions:empty { display: none; }
 
         .reaction-pill {
             background: var(--surface2);
@@ -647,10 +689,101 @@
             align-items: center;
             gap: 3px;
             animation: reactionPop 0.25s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         @keyframes reactionPop {
             from { opacity: 0; transform: scale(0.5); }
             to   { opacity: 1; transform: scale(1); }
+        }
+
+        /* ─── VÁLASZ IDÉZET (buborékon belül) ─── */
+        .reply-quote {
+            display: block;
+            background: rgba(0,0,0,0.18);
+            border-left: 3px solid var(--cyan);
+            border-radius: 6px;
+            padding: 5px 8px;
+            margin-bottom: 6px;
+            font-size: 12.5px;
+            line-height: 1.35;
+            max-width: 100%;
+        }
+        .msg-row.other .reply-quote { background: rgba(0,229,255,0.06); }
+        .reply-quote .reply-quote-name {
+            display: block;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 11.5px;
+            color: var(--cyan);
+            margin-bottom: 1px;
+        }
+        .msg-row.me .reply-quote .reply-quote-name { color: rgba(13,15,20,0.75); }
+        .reply-quote .reply-quote-text {
+            display: block;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .msg-row.me .reply-quote .reply-quote-text { color: rgba(13,15,20,0.65); }
+
+        /* ─── VÁLASZ ELŐNÉZET AZ INPUT FELETT ─── */
+        .reply-preview {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: var(--radius) var(--radius) 0 0;
+            padding: 8px 12px;
+            margin: 0 0 -1px 0;
+        }
+        .reply-preview.show { display: flex; }
+        .reply-preview-bar {
+            width: 3px;
+            align-self: stretch;
+            background: var(--cyan);
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .reply-preview-content { flex: 1; min-width: 0; }
+        .reply-preview-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--cyan);
+            margin-bottom: 1px;
+        }
+        .reply-preview-text {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .reply-preview-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .reply-preview-close:hover { color: var(--red); background: rgba(255,75,110,0.08); }
+
+        /* ─── ÜZENET IDEJE — a buborék ALATT ─── */
+        .msg-time {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 3px;
+            padding: 0 2px;
         }
 
         /* ─── JELENTÉS GOMB ─── */
@@ -750,7 +883,22 @@
         .rules-modal-box {
             width: min(480px, 90vw);
             max-height: 82vh;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .rules-modal-scroll {
+            padding: 24px 24px 4px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+        .rules-modal-actions {
+            flex-shrink: 0;
+            padding: 14px 24px 22px;
+            margin-top: 0;
+            border-top: 1px solid var(--border);
         }
         .rules-section { margin-bottom: 16px; }
         .rules-section-title {
@@ -845,14 +993,6 @@
             text-align: right;
         }
 
-        .msg-time {
-            font-size: 11px;
-            color: var(--text-dim);
-            flex-shrink: 0;
-            margin-bottom: 2px;
-            padding: 0 2px;
-        }
-
         /* Typing indicator */
         .typing-indicator {
             display: none;
@@ -900,6 +1040,7 @@
         /* Footer */
         .chat-footer {
             padding: 16px 20px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom));
             border-top: 1px solid var(--border);
             background: rgba(13,15,20,0.8);
             backdrop-filter: blur(12px);
@@ -925,7 +1066,9 @@
             outline: none;
             color: var(--text);
             font-family: 'Inter', sans-serif;
-            font-size: 14.5px;
+            /* Min. 16px szükséges, különben iOS Safari/Chrome automatikusan
+               ráközelít (zoom) a mezőre fókuszáláskor */
+            font-size: 16px;
             line-height: 1.5;
             padding: 6px 0;
         }
@@ -1048,8 +1191,8 @@
             .chat-body { padding: 14px 12px; }
             .msg-row { max-width: 88%; }
             .bubble { font-size: 14px; padding: 9px 12px; }
-            .chat-footer { padding: 10px 12px; }
-            .msg-input { font-size: 14px; }
+            .chat-footer { padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+            .msg-input { font-size: 16px; }
             .send-btn { width: 36px; height: 36px; }
             #toast { bottom: 90px; font-size: 12px; padding: 8px 14px; }
         }
@@ -1233,6 +1376,14 @@
             </div>
 
             <div class="chat-footer">
+                <div class="reply-preview" id="replyPreview">
+                    <div class="reply-preview-bar"></div>
+                    <div class="reply-preview-content">
+                        <div class="reply-preview-label">Válasz neki: <span id="replyPreviewName"></span></div>
+                        <div class="reply-preview-text" id="replyPreviewText"></div>
+                    </div>
+                    <button class="reply-preview-close" onclick="valaszMegse()" title="Válasz megszakítása">✕</button>
+                </div>
                 <div class="input-row">
                     <input
                         type="text"
@@ -1309,49 +1460,51 @@
     <!-- ELSŐ LÁTOGATÁSKOR MEGJELENŐ SZABÁLYOK / TUDNIVALÓK MODAL -->
     <div class="modal-overlay" id="rulesModal">
         <div class="modal-box rules-modal-box">
-            <div class="modal-title">👋 Mielőtt elkezded</div>
-            <div class="modal-text" style="margin-bottom: 14px;">
-                A RandoChaten ismeretlen emberekkel beszélgetsz témák alapján. Pár fontos dolog, mielőtt csatlakozol:
+            <div class="rules-modal-scroll">
+                <div class="modal-title">👋 Mielőtt elkezded</div>
+                <div class="modal-text" style="margin-bottom: 14px;">
+                    A RandoChaten ismeretlen emberekkel beszélgetsz témák alapján. Pár fontos dolog, mielőtt csatlakozol:
+                </div>
+
+                <div class="rules-section">
+                    <div class="rules-section-title">✅ Mi megengedett, mi nem</div>
+                    <ul class="rules-list">
+                        <li>Legyél tisztelettudó — normális, baráti hangnem az elvárás.</li>
+                        <li>Tilos a zaklatás, a gyűlöletbeszéd és a sértegetés.</li>
+                        <li>Tilos bármilyen szexuális tartalom, és különösen tilos kiskorúakat érintő bármilyen szexuális célú tartalom vagy közeledés.</li>
+                        <li>Tilos a spam, a reklám/hirdetés és linkek küldése.</li>
+                        <li>Ne kérj és ne oszd meg személyes adataidat (telefonszám, cím, jelszó stb.).</li>
+                    </ul>
+                </div>
+
+                <div class="rules-section">
+                    <div class="rules-section-title">⛔ Miért és mennyi időre kaphatsz tiltást</div>
+                    <ul class="rules-list">
+                        <li>Szabálysértés esetén a moderátorok ideiglenesen (néhány órától több hétig) vagy súlyosabb/ismétlődő esetben véglegesen kitilthatnak.</li>
+                        <li>A Jelentés gombbal te is jelezheted, ha valaki megsérti a szabályokat — ezt komolyan vesszük.</li>
+                        <li>A jelentés funkcióval viszont ne élj vissza: aki sorozatosan alaptalanul jelentget másokat, azt a rendszer automatikusan kitiltja — először 3 napra, ismétlődés esetén 1 hétre, majd véglegesen.</li>
+                    </ul>
+                </div>
+
+                <div class="rules-section">
+                    <div class="rules-section-title">👤 Kiknek ajánljuk</div>
+                    <ul class="rules-list">
+                        <li>A RandoChat elsősorban 16 éven felülieknek ajánlott, mivel ismeretlen partnerekkel, moderálatlan pillanatokban is beszélgetsz.</li>
+                        <li>A "Lelki segély" téma nem helyettesíti a szakszerű segítséget — krízishelyzetben kérjük, fordulj hivatalos segélyvonalhoz vagy szakemberhez.</li>
+                    </ul>
+                </div>
+
+                <div class="rules-section" style="margin-bottom: 0;">
+                    <div class="rules-section-title">🤖 A beszélgetést AI figyeli</div>
+                    <ul class="rules-list">
+                        <li>Minden üzenetet automatikusan ellenőriz egy AI-alapú tartalomszűrő, mielőtt megérkezne a partneredhez.</li>
+                        <li>Ez kiszűri és blokkolja többek közt: a gyűlöletbeszédet, a zaklatást, a szexuális/felnőtt tartalmat, valamint az erőszakra vagy önbántalmazásra buzdító tartalmakat — a linkeket és a spam-szerű, túl gyors üzenetküldést pedig külön is blokkoljuk.</li>
+                        <li>Ez nem helyettesíti az emberi moderátort: gyanús vagy nem megfelelő viselkedés esetén használd bátran a Jelentés gombot.</li>
+                    </ul>
+                </div>
             </div>
 
-            <div class="rules-section">
-                <div class="rules-section-title">✅ Mi megengedett, mi nem</div>
-                <ul class="rules-list">
-                    <li>Legyél tisztelettudó — normális, baráti hangnem az elvárás.</li>
-                    <li>Tilos a zaklatás, a gyűlöletbeszéd és a sértegetés.</li>
-                    <li>Tilos bármilyen szexuális tartalom, és különösen tilos kiskorúakat érintő bármilyen szexuális célú tartalom vagy közeledés.</li>
-                    <li>Tilos a spam, a reklám/hirdetés és linkek küldése.</li>
-                    <li>Ne kérj és ne oszd meg személyes adataidat (telefonszám, cím, jelszó stb.).</li>
-                </ul>
-            </div>
-
-            <div class="rules-section">
-                <div class="rules-section-title">⛔ Miért és mennyi időre kaphatsz tiltást</div>
-                <ul class="rules-list">
-                    <li>Szabálysértés esetén a moderátorok ideiglenesen (néhány órától több hétig) vagy súlyosabb/ismétlődő esetben véglegesen kitilthatnak.</li>
-                    <li>A Jelentés gombbal te is jelezheted, ha valaki megsérti a szabályokat — ezt komolyan vesszük.</li>
-                    <li>A jelentés funkcióval viszont ne élj vissza: aki sorozatosan alaptalanul jelentget másokat, azt a rendszer automatikusan kitiltja — először 3 napra, ismétlődés esetén 1 hétre, majd véglegesen.</li>
-                </ul>
-            </div>
-
-            <div class="rules-section">
-                <div class="rules-section-title">👤 Kiknek ajánljuk</div>
-                <ul class="rules-list">
-                    <li>A RandoChat elsősorban 16 éven felülieknek ajánlott, mivel ismeretlen partnerekkel, moderálatlan pillanatokban is beszélgetsz.</li>
-                    <li>A "Lelki segély" téma nem helyettesíti a szakszerű segítséget — krízishelyzetben kérjük, fordulj hivatalos segélyvonalhoz vagy szakemberhez.</li>
-                </ul>
-            </div>
-
-            <div class="rules-section">
-                <div class="rules-section-title">🤖 A beszélgetést AI figyeli</div>
-                <ul class="rules-list">
-                    <li>Minden üzenetet automatikusan ellenőriz egy AI-alapú tartalomszűrő, mielőtt megérkezne a partneredhez.</li>
-                    <li>Ez kiszűri és blokkolja többek közt: a gyűlöletbeszédet, a zaklatást, a szexuális/felnőtt tartalmat, valamint az erőszakra vagy önbántalmazásra buzdító tartalmakat — a linkeket és a spam-szerű, túl gyors üzenetküldést pedig külön is blokkoljuk.</li>
-                    <li>Ez nem helyettesíti az emberi moderátort: gyanús vagy nem megfelelő viselkedés esetén használd bátran a Jelentés gombot.</li>
-                </ul>
-            </div>
-
-            <div class="modal-actions" style="margin-top: 6px;">
+            <div class="modal-actions rules-modal-actions">
                 <button class="modal-btn danger" onclick="szabalyokElfogad()">Rendben, értem</button>
             </div>
         </div>
@@ -1359,6 +1512,25 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // ─── VALÓS MOBIL MAGASSÁG (--vh) ──────────────────
+        // A "100vh" mobil böngészőkben a címsáv/eszközsáv MÖGÖTTI teljes
+        // magasságot jelenti, nem a ténylegesen látható területet — ezért
+        // takarhatja ki a böngésző UI-ja a chat alját (pl. a küldés gombot).
+        // A visualViewport API-val kiszámoljuk a valóban látható magasságot,
+        // és ebből képezzük a --vh CSS változót; ez fut billentyűzet
+        // megnyitásakor, forgatáskor és a böngészősáv megjelenésekor/eltűnésekor is.
+        function frissitsVh() {
+            const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+            document.documentElement.style.setProperty('--vh', (h * 0.01) + 'px');
+        }
+        frissitsVh();
+        window.addEventListener('resize', frissitsVh);
+        window.addEventListener('orientationchange', frissitsVh);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', frissitsVh);
+            window.visualViewport.addEventListener('scroll', frissitsVh);
+        }
+
         const socket = io();
         let aktualisTema = "";
         let sajatNev = "";
@@ -1535,6 +1707,7 @@
             document.getElementById('uzenetInp').disabled = true;
             document.getElementById('sendBtn').disabled = true;
             document.getElementById('reportBtn').disabled = true;
+            valaszMegse();
         }
 
         function clearMessages() {
@@ -1543,6 +1716,8 @@
             document.getElementById('chatEmpty').style.display = 'flex';
             pendingOwnMessages = [];
             closeAllPickers();
+            Object.keys(messageStore).forEach(k => delete messageStore[k]);
+            valaszMegse();
         }
 
         // ─── NEMVÁLASZTÓ ──────────────────────────────
@@ -1590,12 +1765,15 @@
                 return;
             }
 
-            socket.emit('send_message', msg);
-            const localId = addMessage(msg, 'me');
+            const aktivValasz = replyingTo ? { id: replyingTo.id, text: replyingTo.text, senderLabel: replyingTo.senderLabel } : null;
+
+            socket.emit('send_message', aktivValasz ? { text: msg, replyTo: aktivValasz } : msg);
+            const localId = addMessage(msg, 'me', null, null, aktivValasz);
             pendingOwnMessages.push({ localId, text: msg });
             inp.value = '';
             updateCharCount();
             socket.emit('typing_stop');
+            valaszMegse();
         }
 
         function kovetkezo() {
@@ -1608,8 +1786,11 @@
         // ─── ÜZENETEK ─────────────────────────────────
         const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮'];
         let localMsgCounter = 0;
+        // Elküldött/kapott üzenetek szövege és feladója — a válasz-előnézethez kell,
+        // hogy egy korábbi üzenetre kattintva idézni tudjuk a tartalmát
+        const messageStore = {};
 
-        function addMessage(text, type, senderName, messageId) {
+        function addMessage(text, type, senderName, messageId, replyTo) {
             const body = document.getElementById('chatBody');
             const typingEl = document.getElementById('typingIndicator');
             const isSystem = type === 'system' || type === 'warn';
@@ -1621,15 +1802,39 @@
             if (!isSystem) row.dataset.msgId = id;
 
             const now = new Date().toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+            const sajatFeladoLabel = 'Te';
+            const feladoLabel = type === 'other' ? (senderName || partnerNev) : sajatFeladoLabel;
 
-            // CSAK a partner üzeneteinél (other) jelenítjük meg a reakció ikont!
-            let pickerHtml = '';
-            if (type === 'other') {
-                pickerHtml = `
-                    <button class="reaction-trigger" onclick="reakcioPickerToggle(event, '${id}')" title="Reagálás">🙂</button>
-                    <div class="reaction-picker" id="picker-${id}">
-                        ${REACTION_EMOJIS.map(e => `<button onclick="reakcioKuldes(event, '${id}', '${e}')">${e}</button>`).join('')}
+            if (!isSystem) {
+                messageStore[id] = { text, senderLabel: feladoLabel };
+            }
+
+            // Válasz-idézet a buborékon belül, ha az üzenet válaszol egy korábbira
+            let replyQuoteHtml = '';
+            if (!isSystem && replyTo) {
+                replyQuoteHtml = `
+                    <div class="reply-quote">
+                        <span class="reply-quote-name">${escapeHtml(replyTo.senderLabel || '')}</span>
+                        <span class="reply-quote-text">${escapeHtml(replyTo.text || '')}</span>
                     </div>
+                `;
+            }
+
+            // Reakció + válasz gombok — rendszerüzeneteknél nincs, egyébként mindkét oldalon elérhető
+            let actionsHtml = '';
+            if (!isSystem) {
+                const reactBtn = type === 'other'
+                    ? `<button class="msg-action-btn" onclick="reakcioPickerToggle(event, '${id}')" title="Reagálás">🙂</button>`
+                    : '';
+                actionsHtml = `
+                    <div class="msg-actions">
+                        ${type === 'me' ? '' : reactBtn}
+                        <button class="msg-action-btn" onclick="valaszAdas('${id}')" title="Válasz">↩</button>
+                        ${type === 'me' ? reactBtn : ''}
+                    </div>
+                    ${type === 'other' ? `<div class="reaction-picker" id="picker-${id}">
+                        ${REACTION_EMOJIS.map(e => `<button onclick="reakcioKuldes(event, '${id}', '${e}')">${e}</button>`).join('')}
+                    </div>` : ''}
                 `;
             }
 
@@ -1637,26 +1842,24 @@
                 row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
             } else if (type === 'other') {
                 row.innerHTML = `
-                    <div class="msg-sender">${escapeHtml(senderName || partnerNev)}</div>
-                    <div class="bubble-wrap">
-                        <div class="bubble-zone">
-                            <div class="bubble">${escapeHtml(text)}</div>
-                            ${pickerHtml}
-                        </div>
-                        <div class="msg-time">${now}</div>
+                    <div class="msg-sender">${escapeHtml(feladoLabel)}</div>
+                    <div class="bubble-zone">
+                        <div class="bubble">${replyQuoteHtml}${escapeHtml(text)}</div>
+                        ${actionsHtml}
+                        <div class="msg-reactions" id="reactions-${id}"></div>
                     </div>
-                    <div class="msg-reactions" id="reactions-${id}"></div>
+                    <div class="msg-time">${now}</div>
                 `;
             } else {
-                // 'me' - saját üzenetnél nincs pickerHtml
+                // 'me'
                 row.innerHTML = `
-                    <div class="bubble-wrap">
-                        <div class="msg-time">${now}</div>
-                        <div class="bubble-zone">
-                            <div class="bubble">${escapeHtml(text)}</div>
-                        </div>
+                    <div class="msg-sender">${escapeHtml(feladoLabel)}</div>
+                    <div class="bubble-zone">
+                        <div class="bubble">${replyQuoteHtml}${escapeHtml(text)}</div>
+                        ${actionsHtml}
+                        <div class="msg-reactions" id="reactions-${id}"></div>
                     </div>
-                    <div class="msg-reactions" id="reactions-${id}"></div>
+                    <div class="msg-time">${now}</div>
                 `;
             }
 
@@ -1666,12 +1869,31 @@
         }
         function addSystemMsg(text) { addMessage(text, 'system'); }
 
+        // ─── VÁLASZ EGY ÜZENETRE ───────────────────────
+        let replyingTo = null; // { id, text, senderLabel }
+
+        function valaszAdas(id) {
+            const stored = messageStore[id];
+            if (!stored) return;
+            replyingTo = { id, text: stored.text, senderLabel: stored.senderLabel };
+            document.getElementById('replyPreviewName').textContent = stored.senderLabel;
+            document.getElementById('replyPreviewText').textContent = stored.text;
+            document.getElementById('replyPreview').classList.add('show');
+            const inp = document.getElementById('uzenetInp');
+            if (!inp.disabled) inp.focus();
+        }
+
+        function valaszMegse() {
+            replyingTo = null;
+            document.getElementById('replyPreview').classList.remove('show');
+        }
+
         // ─── REAKCIÓK (emoji picker) ──────────────────
         let openPickerId = null;
 
         function closeAllPickers() {
             document.querySelectorAll('.reaction-picker.open').forEach(p => p.classList.remove('open'));
-            document.querySelectorAll('.reaction-trigger.force-visible').forEach(b => b.classList.remove('force-visible'));
+            document.querySelectorAll('.msg-actions.force-visible').forEach(b => b.classList.remove('force-visible'));
             openPickerId = null;
         }
 
@@ -1683,7 +1905,8 @@
             closeAllPickers();
             if (!wasOpen) {
                 picker.classList.add('open');
-                evt.currentTarget.classList.add('force-visible');
+                const actions = evt.currentTarget.closest('.msg-actions');
+                if (actions) actions.classList.add('force-visible');
                 openPickerId = msgId;
             }
         }
@@ -1782,6 +2005,15 @@
             }
         });
 
+        // Mobil billentyűzet megnyitásakor a lecsökkent viewport miatt
+        // görgessük le a chatet, hogy az input és az utolsó üzenet is látszódjon
+        msgInp.addEventListener('focus', () => {
+            setTimeout(() => {
+                const body = document.getElementById('chatBody');
+                body.scrollTop = body.scrollHeight;
+            }, 300);
+        });
+
         // ─── SOCKET EVENTS ────────────────────────────
         socket.on('waiting', () => setWaitingState());
 
@@ -1828,18 +2060,28 @@
             const row = document.querySelector(`.msg-row.me[data-msg-id="${cssEscapeAttr(localId)}"]`);
             if (!row) return;
             row.dataset.msgId = id;
-            
+
             // Saját üzenetnél már nincs picker, csak a reakció tároló ID-ját kell frissíteni
             const reactions = row.querySelector('.msg-reactions');
             if (reactions) reactions.id = 'reactions-' + id;
+
+            // A válasz gomb is az új (szerver oldali) ID-ra hivatkozzon, és a
+            // messageStore bejegyzést is át kell vezetni, hogy a válasz-idézet
+            // működjön akkor is, ha valaki erre az üzenetre válaszol
+            const replyBtn = row.querySelector('.msg-action-btn[title="Válasz"]');
+            if (replyBtn) replyBtn.setAttribute('onclick', `valaszAdas('${id}')`);
+            if (messageStore[localId]) {
+                messageStore[id] = messageStore[localId];
+                delete messageStore[localId];
+            }
         });
 
-        socket.on('receive_message', ({ id, text, senderName }) => {
+        socket.on('receive_message', ({ id, text, senderName, replyTo }) => {
             hideTyping();
             if (text.startsWith('RENDSZER:')) {
                 addMessage(text.replace('RENDSZER:', '').trim(), 'warn');
             } else {
-                addMessage(text, 'other', senderName, id);
+                addMessage(text, 'other', senderName, id, replyTo);
                 // Hang + tab értesítés ha a felhasználó nem látja az oldalt
                 playMessageSound();
                 if (document.hidden) {
@@ -1959,6 +2201,9 @@
             try { alreadySeen = localStorage.getItem(RULES_SEEN_KEY) === '1'; } catch (e) { alreadySeen = false; }
             if (!alreadySeen) szabalyokMegnyit();
         }
+        document.getElementById('rulesModal').addEventListener('click', (e) => {
+            if (e.target.id === 'rulesModal') szabalyokElfogad();
+        });
 
         updateCharCount();
         initRulesModal();
