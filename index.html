@@ -353,6 +353,26 @@
         }
         .topic-btn .topic-tag { font-size: 12px; color: var(--cyan); margin-top: 3px; display: block; }
 
+        /* "Spontán beszélgetés" — dupla szélességű, kiemelt box a gaming/filmek
+           sor felett, mindkét oszlopot átfogva */
+        .topic-btn.topic-btn-featured {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 22px 20px;
+        }
+        .topic-btn.topic-btn-featured .topic-icon {
+            font-size: 30px;
+            margin-bottom: 0;
+        }
+        .topic-btn.topic-btn-featured .topic-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .topic-btn.topic-btn-featured .topic-name { font-size: 16px; }
+        .topic-btn.topic-btn-featured .topic-tag { margin-top: 2px; }
+
         /* ─── CHAT SCREEN ─── */
         #chatScreen {
             padding: 0;
@@ -665,10 +685,20 @@
             transform: scale(1.25);
         }
 
-        /* A kapott reakciók jobb felül, a buborék sarkára lógva jelennek meg */
+        /* A kapott reakciók a buborék sarkára lógva jelennek meg — a saját (me)
+           üzeneteknél BAL felül, a partneri (other) üzeneteknél jobb felül.
+           A bubble-zone-nak csak akkor van fenntartott hely (has-reactions),
+           ha ténylegesen van rajta reakció — így a reakció-pill sosem takarja
+           ki sem a névsort (msg-sender), sem az üzenet szövegét. */
+        .bubble-zone {
+            transition: margin-top 0.15s ease;
+        }
+        .bubble-zone.has-reactions {
+            margin-top: 20px;
+        }
         .msg-reactions {
             position: absolute;
-            top: -10px;
+            top: -20px;
             right: -6px;
             display: flex;
             gap: 3px;
@@ -676,6 +706,11 @@
             z-index: 6;
             max-width: 160px;
             justify-content: flex-end;
+        }
+        .msg-row.me .msg-reactions {
+            left: -6px;
+            right: auto;
+            justify-content: flex-start;
         }
         .msg-reactions:empty { display: none; }
 
@@ -1281,6 +1316,13 @@
             <!-- Topic grid -->
             <div class="topic-section-label">Válassz témát a csatlakozáshoz</div>
             <div class="topic-grid">
+                <button class="topic-btn topic-btn-featured" id="btn-spontan" onclick="csatlakozas('spontan')" disabled>
+                    <span class="topic-icon">💬</span>
+                    <span class="topic-text">
+                        <span class="topic-name">Spontán beszélgetés</span>
+                        <span class="topic-tag">#spontan</span>
+                    </span>
+                </button>
                 <button class="topic-btn" id="btn-gaming" onclick="csatlakozas('gaming')" disabled>
                     <span class="topic-icon">🎮</span>
                     <span class="topic-name">Gaming</span>
@@ -1296,25 +1338,15 @@
                     <span class="topic-name">Zene</span>
                     <span class="topic-tag">#zene</span>
                 </button>
-                <button class="topic-btn" id="btn-random" onclick="csatlakozas('random')" disabled>
-                    <span class="topic-icon">🎲</span>
-                    <span class="topic-name">Random</span>
-                    <span class="topic-tag">#random</span>
-                </button>
                 <button class="topic-btn" id="btn-sorozat" onclick="csatlakozas('sorozat')" disabled>
                     <span class="topic-icon">📺</span>
                     <span class="topic-name">Sorozat / Anime</span>
                     <span class="topic-tag">#sorozat</span>
                 </button>
-                <button class="topic-btn" id="btn-iskola" onclick="csatlakozas('iskola')" disabled>
-                    <span class="topic-icon">🎓</span>
-                    <span class="topic-name">Iskola / Uni</span>
-                    <span class="topic-tag">#iskola</span>
-                </button>
                 <button class="topic-btn" id="btn-lelki" onclick="csatlakozas('lelki')" disabled>
                     <span class="topic-icon">💙</span>
-                    <span class="topic-name">Lelki segély</span>
-                    <span class="topic-tag">#lelki-segely</span>
+                    <span class="topic-name">Lelkizés</span>
+                    <span class="topic-tag">#lelkizes</span>
                 </button>
                 <button class="topic-btn" id="btn-tech" onclick="csatlakozas('tech')" disabled>
                     <span class="topic-icon">💻</span>
@@ -1426,6 +1458,12 @@
                     <input type="checkbox" class="report-reason-cb" value="Szexuális tartalom / Zaklatás" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Szexuális tartalom / Zaklatás
                 </label>
                 <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+                    <input type="checkbox" class="report-reason-cb" value="Hirdetés / Reklám" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Hirdetés / Reklám
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
+                    <input type="checkbox" class="report-reason-cb" value="Spam" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Spam
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer;">
                     <input type="checkbox" class="report-reason-cb" value="Egyéb szabályszegés" style="accent-color: var(--cyan); width: 16px; height: 16px;"> Egyéb szabályszegés
                 </label>
             </div>
@@ -1490,7 +1528,7 @@
                     <div class="rules-section-title">👤 Kiknek ajánljuk</div>
                     <ul class="rules-list">
                         <li>A RandoChat elsősorban 16 éven felülieknek ajánlott, mivel ismeretlen partnerekkel, moderálatlan pillanatokban is beszélgetsz.</li>
-                        <li>A "Lelki segély" téma nem helyettesíti a szakszerű segítséget — krízishelyzetben kérjük, fordulj hivatalos segélyvonalhoz vagy szakemberhez.</li>
+                        <li>A "Lelkizés" téma nem helyettesíti a szakszerű segítséget — krízishelyzetben kérjük, fordulj hivatalos segélyvonalhoz vagy szakemberhez. Ez csak arra szolgál hogy valakivel megoszd a gondolataidat</li>
                     </ul>
                 </div>
 
@@ -1541,12 +1579,11 @@
         let partnerTypingTimeout = null;
 
         const TOPIC_META = {
+            spontan: { icon: '💬' },
             gaming:  { icon: '🎮' },
             filmek:  { icon: '🎬' },
             zene:    { icon: '🎵' },
-            random:  { icon: '🎲' },
             sorozat: { icon: '📺' },
-            iskola:  { icon: '🎓' },
             lelki:   { icon: '💙' },
             tech:    { icon: '💻' },
         };
@@ -1560,12 +1597,30 @@
         const topicBtns = document.querySelectorAll('.topic-btn');
 
         const USERNAME_RE = /^[a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ_\-]{3,20}$/;
+        const BAD_WORDS = [
+    'geci', 'kurva', 'fasz', 'buzi', 'cigany', 'hitler', 'zsido', 'nigger',
+    'picsa', 'köcsög', 'ribanc', 'ringyo', 'szajha', 'csicska', 'nyomorek', 
+    'retardalt', 'pöcs', 'segg', 'szop', 'faszfej', 'kocsog', 'csöcs', 'fregoli',
+    'naci', 'nazi', 'pedofil', 'erőszak', 'incel', 'autista', 'ongyilkos', 
+    'terror', 'nyilas', 'fasiszta', 'kommunista',
+    'admin', 'moderator', 'rendszer', 'root', 'tulaj', 'tulajdonos', 'owner', 
+    'staff', 'support', 'system', 'sysadmin', 'randochat', 'hivatalos'
+];
 
         function validateUsername(val) {
-            if (val.length === 0) return null;          // üres — semleges
-            if (val.length < 3) return 'short';
+            if (val.length === 0 ) return null;
+        
+            const lowerVal = val.toLowerCase();
+            for (const word of BAD_WORDS) {
+                // JAVÍTVA: world helyett word!
+                if (lowerVal.includes(word)){
+                    return 'profanity';
+                }
+            }
+
+            if (val.length < 3 ) return 'short';
             if (!USERNAME_RE.test(val)) return 'invalid';
-            return 'ok';
+            return 'ok'; // <-- Ide is érdemes kitenni a pontosvesszőt
         }
 
         usernameInp.addEventListener('input', () => {
@@ -1579,16 +1634,22 @@
                 usernameHint.textContent = '3–20 karakter, csak betű, szám és kötőjel';
                 topicBtns.forEach(b => b.disabled = true);
             } else if (state === 'short') {
-                usernameHint.textContent = 'Legalább 3 karakter kell';
-                usernameHint.className = 'username-hint error';
-                usernameWrap.classList.add('error');
-                topicBtns.forEach(b => b.disabled = true);
-            } else if (state === 'invalid') {
-                usernameHint.textContent = 'Csak betű, szám, kötőjel és aláhúzás megengedett';
-                usernameHint.className = 'username-hint error';
-                usernameWrap.classList.add('error');
-                topicBtns.forEach(b => b.disabled = true);
-            } else {
+            usernameHint.textContent = 'Legalább 3 karakter kell';
+            usernameHint.className = 'username-hint error';
+            usernameWrap.classList.add('error');
+            topicBtns.forEach(b => b.disabled = true);
+        } else if (state === 'profanity') {
+            // EZ AZ ÚJ RÉSZ: a csúnya szó hibaüzenete
+            usernameHint.textContent = 'Kérlek, válassz egy másik, kulturáltabb nevet!';
+            usernameHint.className = 'username-hint error';
+            usernameWrap.classList.add('error');
+            topicBtns.forEach(b => b.disabled = true);
+        } else if (state === 'invalid') {
+            usernameHint.textContent = 'Csak betű, szám, kötőjel és aláhúzás megengedett';
+            usernameHint.className = 'username-hint error';
+            usernameWrap.classList.add('error');
+            topicBtns.forEach(b => b.disabled = true);
+        } else {
                 usernameHint.textContent = '✓ Szép választás!';
                 usernameHint.className = 'username-hint ok';
                 topicBtns.forEach(b => b.disabled = false);
@@ -1942,6 +2003,7 @@
             if (!container) return;
             const existing = container.querySelector(`[data-emoji="${emoji}"][data-from="${cssEscapeAttr(fromName)}"]`);
             if (existing) existing.remove();
+            frissitsReakcioHely(container);
         }
 
         function renderReaction(msgId, emoji, fromName) {
@@ -1950,7 +2012,7 @@
 
             // Ha ugyanaz a személy ugyanazt az emojit már adta, ne dupláz­zuk
             const existing = container.querySelector(`[data-emoji="${emoji}"][data-from="${cssEscapeAttr(fromName)}"]`);
-            if (existing) return;
+            if (existing) { frissitsReakcioHely(container); return; }
 
             const pill = document.createElement('span');
             pill.className = 'reaction-pill';
@@ -1958,6 +2020,18 @@
             pill.dataset.from = fromName;
             pill.textContent = emoji;
             container.appendChild(pill);
+            frissitsReakcioHely(container);
+        }
+
+        // Fenntartott hely a bubble-zone tetején, CSAK ha van legalább egy
+        // reakció — így üres állapotban nem tolódik el semmi, tele állapotban
+        // pedig a reakció-pill mindig a saját helyén (a névsor és a buborék
+        // szövege fölött, azokat nem takarva) jelenik meg.
+        function frissitsReakcioHely(container) {
+            if (!container) return;
+            const zone = container.closest('.bubble-zone');
+            if (!zone) return;
+            zone.classList.toggle('has-reactions', container.children.length > 0);
         }
 
         function cssEscapeAttr(str) {

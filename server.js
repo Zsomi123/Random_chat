@@ -140,10 +140,32 @@ function containsLink(text) {
 }
 
 // Felhasználónév validáció szerver oldalon is
+// Felhasználónév validáció szerver oldalon is
 const USERNAME_RE = /^[a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ_\-]{3,20}$/;
 
+
+// ITT IS MEGDJUK A TILTOTT SZAVAKAT
+const BAD_WORDS = [
+    'geci', 'kurva', 'fasz', 'buzi', 'cigany', 'hitler', 'zsido', 'nigger',
+    'picsa', 'köcsög', 'ribanc', 'ringyo', 'szajha', 'csicska', 'nyomorek', 
+    'retardalt', 'pöcs', 'segg', 'szop', 'faszfej', 'kocsog', 'csöcs', 'fregoli',
+    'naci', 'nazi', 'pedofil', 'erőszak', 'incel', 'autista', 'ongyilkos', 
+    'terror', 'nyilas', 'fasiszta', 'kommunista',
+    'admin', 'moderator', 'rendszer', 'root', 'tulaj', 'tulajdonos', 'owner', 
+    'staff', 'support', 'system', 'sysadmin', 'randochat', 'hivatalos'
+];
+
 function validUsername(name) {
-    return typeof name === 'string' && USERNAME_RE.test(name.trim());
+    if (typeof name !== 'string') return false;
+    const trimmed = name.trim();
+    
+    // Tiltott szavak ellenőrzése a szerveren is
+    const lowerName = trimmed.toLowerCase();
+    for (const word of BAD_WORDS) {
+        if (lowerName.includes(word)) return false;
+    }
+
+    return USERNAME_RE.test(trimmed);
 }
 
 // Kliens valós IP-jének kinyerése.

@@ -621,10 +621,12 @@
             <div class="modal-title" id="banModalTitle">⛔ Felhasználó kitiltása</div>
             <div class="modal-sub" id="banModalSub"></div>
 
-            <div class="ban-target-row">
-                <label><input type="checkbox" id="banTargetUsername" checked> Felhasználónév <code id="banTargetUsernameVal"></code></label>
-                <label><input type="checkbox" id="banTargetIp" checked> IP cím <code id="banTargetIpVal"></code></label>
-            </div>
+            <div class="ban-target-row" style="flex-direction: column; gap: 6px;">
+    <div>Kitiltott felhasználó: <b id="banTargetUsernameVal" style="color: var(--text);"></b></div>
+    <div>Célzott IP cím: <code id="banTargetIpVal"></code></div>
+    <input type="checkbox" id="banTargetUsername" style="display: none;">
+    <input type="checkbox" id="banTargetIp" checked style="display: none;">
+</div>
 
             <div class="field" style="margin-bottom:10px;">
                 <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px;">Időtartam</label>
@@ -648,7 +650,8 @@
                 <select id="banReasonSelect" onchange="document.getElementById('banReasonText').value = this.value">
                     <option value="">-- Válassz egyet, vagy írj be egyedit lent --</option>
                     <option value="Sértő megjegyzések, minősíthetetlen stílus">Sértő megjegyzések, minősíthetetlen stílus</option>
-                    <option value="Spam / Kéretlen hirdetések terjesztése">Spam / Kéretlen hirdetések terjesztése</option>
+                    <option value="Hirdetés / Reklám">Hirdetés / Reklám</option>
+                    <option value="Spam">Spam</option>
                     <option value="Szexuális tartalom, kéretlen közeledés">Szexuális tartalom, kéretlen közeledés</option>
                     <option value="A közösségi irányelvek többszöri megsértése">A közösségi irányelvek többszöri megsértése</option>
                 </select>
@@ -981,15 +984,15 @@ function openBanModal(reportId, username, ip, target = 'reported') {
     document.getElementById('banModalTitle').textContent = target === 'reporter' ? '⛔ Jelentő kitiltása' : '⛔ Felhasználó kitiltása';
     document.getElementById('banModalSub').innerHTML = `${targetLabel} kitiltása: <b>${escapeHtml(username || 'n/a')}</b>, a #${reportId} jelentés alapján.`;
 
-    document.getElementById('banTargetUsername').checked = !!username;
-    document.getElementById('banTargetUsername').disabled = !username;
-    document.getElementById('banTargetUsernameVal').textContent = username || '— nincs adat —';
+    // A felhasználónév tiltása mindig hamis (ki van kapcsolva)
+document.getElementById('banTargetUsername').checked = false; 
+document.getElementById('banTargetUsernameVal').textContent = username || '— nincs adat —';
 
-    document.getElementById('banTargetIp').checked = !!ip;
-    document.getElementById('banTargetIp').disabled = !ip;
-    document.getElementById('banTargetIpVal').textContent = ip || '— nincs adat —';
-
-    // Ürítjük a mezőket
+// Az IP cím alapú tiltás mindig igaz (be van kapcsolva)
+document.getElementById('banTargetIp').checked = true; 
+document.getElementById('banTargetIpVal').textContent = ip || '— nincs adat —';
+    
+// Ürítjük a mezőket
     document.getElementById('banReasonText').value = '';
     document.getElementById('banReasonSelect').value = ''; // <--- Ezt a sort add hozzá!
     document.getElementById('customHoursInput').value = '';
@@ -1015,14 +1018,9 @@ function selectBanDuration(el, value) {
 
 async function confirmBan() {
     const { reportId, hours, target } = banModalState;
-    const banUsername = document.getElementById('banTargetUsername').checked;
-    const banIp = document.getElementById('banTargetIp').checked;
-    const reason = document.getElementById('banReasonText').value.trim();
-
-    if (!banUsername && !banIp) {
-        showToast('Válassz legalább egy célt (felhasználónév vagy IP).');
-        return;
-    }
+    const banUsername = false; // Fixen hamis, nem küldünk név tiltást
+const banIp = true;        // Fixen igaz, mindig az IP-t bántjuk
+const reason = document.getElementById('banReasonText').value.trim();
     if (!reason) {
         showToast('Az indoklás megadása kötelező.');
         return;
